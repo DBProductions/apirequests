@@ -10,7 +10,7 @@
   "homepage": "https://github.com/DBProductions/apirequests",
   "repository": {
     "type": "git",
-    "url": "https://github.com/request/request.git"
+    "url": "https://github.com/apirequests/apirequests.git"
   },
   "bugs": {
     "url": "https://github.com/DBProductions/apirequests/issues"
