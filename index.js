@@ -1,11 +1,11 @@
 var request = require("request");
 var colors = require('colors');
 
-var rest = function rest(opts) {
-	if (!opts) { opts = []; }
+var apirequests = function apirequests(opts) {
+    if (!opts) { opts = []; }
     var tasks = [], responses = [];
     var startTime;
-
+    // build the tasks
     var i, options;
     for(i = 0; i < opts.length; i++) {
         options = {};
@@ -50,7 +50,7 @@ var rest = function rest(opts) {
         responses.push(response);
     }
     /**
-     *
+     * check the responses
      */
     function checkResponses(opts) {
         if (tasks.length === responses.length) {
@@ -64,9 +64,6 @@ var rest = function rest(opts) {
                     }
                 }
             }
-            
-            // sort by num but implement later
-
             // calculate outputs
             for(var i = 0; i < results.length; i++) {
                 results[i].output = {};
@@ -76,6 +73,15 @@ var rest = function rest(opts) {
                     // status code
                     if (results[i].task.response.statuscode !== results[i].result.statusCode) {
                         results[i].output['msg'] += '    - ' + results[i].task.response.statuscode + ' is not equal ' + results[i].result.statusCode + '\n';
+                    }                    
+                    // headers                    
+                    if (results[i].task.response.headers) {
+                        if (results[i].task.response.headers['contenttype'] !== results[i].result.headers['content-type']) {
+                            results[i].output['msg'] += '    - ' + results[i].task.response.headers['contenttype'] + ' is not equal ' + results[i].result.headers['content-type'] + '\n';
+                        }
+                        if (results[i].task.response.headers['contentlength'] !== results[i].result.headers['content-length']) {
+                            results[i].output['msg'] += '    - ' + results[i].task.response.headers['contentlength'] + ' is not equal ' + results[i].result.headers['content-length'] + '\n';
+                        }
                     }
                     // body
                     if (results[i].task.response.data) {
@@ -83,18 +89,11 @@ var rest = function rest(opts) {
                             results[i].output['msg'] += '    - ' + results[i].task.response.data + ' is not equal ' + results[i].result.body + '\n';
                         }
                     }
-                    // headers                    
-                    if (results[i].task.response.headers) {
-                        if (results[i].task.response.headers['contenttype'] !== results[i].result.headers['content-type']) {
-                            results[i].output['msg'] += '    - ' + results[i].task.response.headers['contenttype'] + ' is not equal ' + results[i].result.headers['content-type'] + '\n';
-                        }
-                    }
                     if (results[i].output['msg'] === '\n') {
                         results[i].output['pass'] = true;
                     }
                 }
             }
-
             // display results
             if (opts['output'] === 'print') {
                 var passed = 0, failed = 0;
@@ -143,4 +142,4 @@ var rest = function rest(opts) {
     };
 }
 
-module.exports = rest; 
+module.exports = apirequests; 
