@@ -3,7 +3,9 @@ var colors = require('colors');
 
 var apirequests = function apirequests(opts) {
     if (!opts) { opts = []; }
-    var tasks = [], responses = [];
+    var tasks = [];
+    var responses = [];
+    var methods = ['GET','POST','PUT','DELETE'];
     var startTime;
     // build the tasks
     var i, options;
@@ -12,13 +14,17 @@ var apirequests = function apirequests(opts) {
         options['num'] = i + 1; 
         if (opts[i].method) {
             options['method'] = opts[i].method.toUpperCase();
+            if (methods.indexOf(options['method']) < 0) {
+                options['method'] = false;
+            }
         } else {
             options['method'] = 'GET';
         }
         if (opts[i].uri) {
-            options['uri'] = opts[i].uri;
-        } else {
-            options['uri'] = 'http://httpbin.org';
+            options['uri'] = opts[i].uri;            
+            if (!checkUri(options['uri'])) {
+                options['uri'] = false;
+            }
         }
         if (opts[i].form) {
             options['form'] = opts[i].form;
@@ -29,7 +35,18 @@ var apirequests = function apirequests(opts) {
         if (opts[i].response) {
             options['response'] = opts[i].response;
         }
-        tasks.push(options);
+        if (options['method'] && options['uri']) {
+            tasks.push(options);    
+        } else {
+            console.log(colors.red('* SKIP') + ' - ', opts[i].method + ' ' + opts[i].uri);
+        }        
+    }
+    /**
+     * check uri
+     */
+    function checkUri(s) {    
+        var r = /(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?/;
+        return r.test(s);    
     }
     /**
      * do the request
@@ -96,15 +113,20 @@ var apirequests = function apirequests(opts) {
             }
             // display results
             if (opts['output'] === 'print') {
-                var passed = 0, failed = 0;
-                var difference = Math.round((new Date().getTime() - startTime) / 1000);                
+                var passed = 0;
+                var failed = 0;
+                var difference = Math.round((new Date().getTime() - startTime) / 1000);
                 for(var i = 0; i < results.length; i++) {
                     if (!results[i].output['pass'] && results[i].task.response) {
                         console.log(colors.red('* FAIL') + ' - ', results[i].task.num, results[i].task.method, results[i].task.uri, results[i].output.msg);                    
                         failed += 1;
                     } else {
-                        console.log(colors.green('* PASS') + ' - ', results[i].task.num, results[i].task.method, results[i].task.uri, results[i].output.msg);
-                        passed += 1;
+                        if (results[i].task.response) {
+                            console.log(colors.green('* PASS') + ' - ', results[i].task.num, results[i].task.method, results[i].task.uri, results[i].output.msg);
+                            passed += 1;
+                        } else {
+                            console.log(colors.green('* RUN') + ' - ', results[i].task.num, results[i].task.method, results[i].task.uri, results[i].output.msg);
+                        }                        
                     }
                 }
                 console.log('Finish ' + results.length + ' tasks in ' + difference + ' seconds.');
@@ -118,6 +140,7 @@ var apirequests = function apirequests(opts) {
                 console.log('write to file...later!');
             }
         } else {
+            // check again
             setTimeout(function(){checkResponses(opts)}, 1000);    
         }
     }

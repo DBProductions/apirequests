@@ -1,6 +1,6 @@
 # apirequests
 
-Call API resources in a very simple way.
+Call several API resources in a very simple way with defined rules.
 
 [![NPM](https://nodei.co/npm/apirequests.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/apirequests/)
 
@@ -16,6 +16,10 @@ apitest.run();
 ```
 
 ## Define rules
+
+A rule take basically a uri to run, a method is optinal the default is GET.  
+To send data, define a form object inside of the rule.  
+To test the response, define inside of the rule a response object. The response object can have a statuscode, data and a headers object, this object can have a contenttype and a contentlength.
 
 ```javascript
 {
