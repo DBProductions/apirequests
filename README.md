@@ -1,6 +1,7 @@
 # apirequests
 
 Call several API resources in a very simple way with defined rules.
+Test several backends and does the resources are responsing correctly.
 
 [![NPM](https://nodei.co/npm/apirequests.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/apirequests/)
 

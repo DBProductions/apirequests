@@ -1,6 +1,6 @@
 {
   "name": "apirequests",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "Simple multiple configurable API requests.",
   "main": "index.js",
   "scripts": {
