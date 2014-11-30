@@ -1,7 +1,7 @@
 # apirequests
 
 Call several API resources in a very simple way with defined rules.  
-Test several backends and does the resources are responsing correctly.
+Test several backends if the resources are responsing correctly.
 
 [![NPM](https://nodei.co/npm/apirequests.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/apirequests/)
 
@@ -24,15 +24,8 @@ To test the response, define inside of the rule a response object. The response 
 
 ```javascript
 {
-    method: 'get', 
-    uri: 'http://webservice-point.appspot.com/test',
-    response: {
-        statuscode: 200,
-        data: '{"response": "GET"}',
-        headers: {
-            contenttype: 'application/json',            
-        }
-    }
+    method: 'get',
+    uri: 'http://webservice-point.appspot.com/test'
 },
 {
     method: 'post', 
@@ -61,9 +54,9 @@ To test the response, define inside of the rule a response object. The response 
     method: 'delete', 
     uri: 'http://webservice-point.appspot.com/test',
     response: {
-        statuscode: 200,
+        statuscode: 404,
         headers: {
-            contenttype: 'application/json',            
+            contenttype: 'text/html; charset=UTF-8'
         }
     }
 }
