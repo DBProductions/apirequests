@@ -11,10 +11,14 @@ Test several backends if the resources are responsing correctly.
 var apirequests = require('apirequests');
 
 var rules = [...];
+var options = {output: 'html'};
 
-var apitest = apirequests(rules);
+var apitest = apirequests(rules, options);
 apitest.run();
 ```
+
+The options are optional, per default it gets print out.
+It's also possible to define outputfile and outputpath to save the html file.
 
 ## Define rules
 
@@ -64,7 +68,11 @@ To test the response, define inside of the rule a response object. The response 
 
 ## Results
 
+Per default the result gets print out and look like the picture below.
+
 ![Console](https://raw.githubusercontent.com/DBProductions/apirequests/master/screenshots/console.png)
+
+When the options object gets set to output equal html a report.html file gets created.
 
 ![HTML](https://raw.githubusercontent.com/DBProductions/apirequests/master/screenshots/html.png)
 

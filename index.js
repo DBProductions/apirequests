@@ -8,6 +8,8 @@ var apirequests = function apirequests(rules, opts) {
     if (!rules) { rules = []; }
     if (!opts) { opts = {}; }
     opts['output'] = opts['output'] || 'print';
+    opts['outputfile'] = opts['outputfile'] || 'reports.html';
+    opts['outputpath'] = opts['outputpath'] || './';
     // set some variables
     var tasks = [];
     var responses = [];
@@ -121,7 +123,7 @@ var apirequests = function apirequests(rules, opts) {
     /**
      * write results to html file
      */
-    function writeResults(results) {
+    function writeResults(results, opts) {
         var passed = 0;
         var failed = 0;
         var difference = Math.round((new Date().getTime() - startTime));
@@ -151,9 +153,9 @@ var apirequests = function apirequests(rules, opts) {
             content += '<div><span class="pass">' + msg + '</span></div>';
         }
         content += '</body></html>';
-        fs.writeFile('report.html', content, function (err) {
+        fs.writeFile(opts['outputpath'] + opts['outputfile'], content, function (err) {
             if (err) throw err;
-            console.log('Report file saved!');
+            console.log('Report file ' + opts['outputpath'] + opts['outputfile'] + ' saved!');
         });
     }
     /**
@@ -201,7 +203,7 @@ var apirequests = function apirequests(rules, opts) {
             if (opts['output'] === 'print') {   
                 printResults(results);
             } else if(opts['output'] === 'html') {
-                writeResults(results);                
+                writeResults(results, opts);                
             }
         } else {
             setTimeout(function(){checkResponses(opts)}, 100);
