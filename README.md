@@ -62,5 +62,11 @@ To test the response, define inside of the rule a response object. The response 
 }
 ```
 
+## Results
+
+![Console](https://raw.githubusercontent.com/DBProductions/apirequests/master/screenshots/console.png)
+
+![HTML](https://raw.githubusercontent.com/DBProductions/apirequests/master/screenshots/html.png)
+
 ## Feedback
 Star this repo if you found it useful. Use the github issue tracker to give feedback on this repo.
