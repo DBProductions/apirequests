@@ -1,7 +1,7 @@
 # apirequests
 
-Call several API resources in a simple way with your defined rules.  
-Test several backends if resources are responsing like expected.
+Call several API resources in a simple way with JSON defined rules.  
+Can test several backends if the resources are responsing like expected.
 
 [![NPM](https://nodei.co/npm/apirequests.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/apirequests/)
 
@@ -11,14 +11,31 @@ Test several backends if resources are responsing like expected.
 var apirequests = require('apirequests');
 
 var rules = [...];
-var options = {output: 'html'};
 
-var apitest = apirequests(rules, options);
-apitest.run();
+var apitest = apirequests();
+apitest.run(rules);
 ```
 
-The options are optional, per default the result be print out.
-It's also possible to define `outputfile` and `outputpath` to save the html file.  
+It's also possible to save the rules in a JSON file.
+
+```javascript
+var apirequests = require('apirequests');
+
+var apitest = apirequests();
+apitest.run('rules.json');
+```
+
+Options are optional, per default the result be print out.
+It's also possible to define `output`, `outputfile` and `outputpath` to save the html file.  
+
+```javascript
+var apirequests = require('apirequests');
+
+var rules = [...];
+
+var apitest = apirequests({output: 'html'});
+apitest.run(rules);
+```
 
 When the requests should run in a `loop` set it with a timeout value.
 
@@ -27,19 +44,20 @@ var apirequests = require('apirequests');
 
 var rules = [...];
 
-var apitest = apirequests(rules, {loop: 20});
-apitest.run();
+var apitest = apirequests({loop: 2000});
+apitest.run(rules);
 ```
 
-## Define rules
+## How to define rules
 
-A rule take basically a `uri` to run, a `method` is optinal, the default is GET. To send headers define them as `headers` object and define a `form` object inside of the rule to send data.  
-To test the response, define inside of the rule a response object. The response object can have a `statuscode`, `data` and a `headers` object, this object can have a `contenttype`, `contentlength` and a `cachecontrol`.
+A rule take basically a `uri` to run, a `method` is optinal, the default value is GET.  
+To send headers define them as `headers` object and define a `form` object inside of the rule to send data.  
+To test the response, define inside of the rule a response object. The response object can have a `statuscode`, `data` and a `headers` object, this object can check `contenttype`, `contentlength`, `cachecontrol` and `server`.
 
-Some examples for defining rules.
+Some examples how to define rules.
 
 ```javascript
-{
+[{
     method: 'get',
     uri: 'http://webservice-point.appspot.com/test'
 },
@@ -78,7 +96,7 @@ Some examples for defining rules.
             contenttype: 'text/html; charset=UTF-8'
         }
     }
-}
+}]
 ```
 
 ## Results
@@ -87,7 +105,7 @@ Per default the result be print out and look like the picture below.
 
 ![Console](https://raw.githubusercontent.com/DBProductions/apirequests/master/screenshots/console.png)
 
-When the options object gets set with output equal html a report.html file gets created.
+When the options object have a property output set to html then a HTML file gets created.
 
 ![HTML](https://raw.githubusercontent.com/DBProductions/apirequests/master/screenshots/html.png)
 
