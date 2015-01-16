@@ -1,6 +1,6 @@
-var request = require("request");
-var colors = require('colors');
-var fs = require('fs');
+var request = require("request"),
+    colors = require('colors'),
+    fs = require('fs');
 /**
  * apirequests
  */
@@ -12,11 +12,11 @@ var apirequests = function apirequests(opts) {
     opts.outputfile = opts.outputfile || 'reports.html';
     opts.outputpath = opts.outputpath || './';
     // set some variables
-    var tasks = [];
-    var responses = [];
-    var methods = ['GET','POST','PUT','DELETE','HEAD','OPTIONS'];
-    var startTime = 0;
-    var loopCount = 1;
+    var startTime = 0,
+        loopCount = 1,
+        tasks = [],
+        responses = [],
+        methods = ['GET','POST','PUT','DELETE','HEAD','OPTIONS'];    
     /**
      * check uri
      */
@@ -63,9 +63,9 @@ var apirequests = function apirequests(opts) {
      * print results on console
      */
     function printResults(results) {
-        var passed = 0;
-        var failed = 0;
-        var difference = Math.round((new Date().getTime() - startTime));
+        var passed = 0,
+            failed = 0,
+            difference = Math.round((new Date().getTime() - startTime));
         for(var i = 0; i < results.length; i++) {
             var requestTime = Math.round((results[i].result.reqend - results[i].task.reqstart));
             if (!results[i].output.pass && results[i].task.response) {
@@ -97,9 +97,9 @@ var apirequests = function apirequests(opts) {
      * write results to html file
      */
     function writeResults(results, opts) {
-        var passed = 0;
-        var failed = 0;
-        var difference = Math.round((new Date().getTime() - startTime));
+        var passed = 0,
+            failed = 0,
+            difference = Math.round((new Date().getTime() - startTime));
         var content = '<html><head><style>.error{color:red;}.pass{color:green;}</style></head><body><h1>apirequests report</h1>';
         for(var i = 0; i < results.length; i++) {
             var requestTime = Math.round((results[i].result.reqend - results[i].task.reqstart));
@@ -301,6 +301,7 @@ var apirequests = function apirequests(opts) {
                 });
             } else {
                 buildTasks(rules);
+                startTime = (+new Date());
                 if (opts.output === 'print') {                
                     console.log('Start with', tasks.length, 'Tasks\n');
                 }                

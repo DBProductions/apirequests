@@ -31,10 +31,8 @@ It's also possible to define `output`, `outputfile` and `outputpath` to save the
 ```javascript
 var apirequests = require('apirequests');
 
-var rules = [...];
-
 var apitest = apirequests({output: 'html'});
-apitest.run(rules);
+apitest.run('rules.json');
 ```
 
 When the requests should run in a `loop` set it with a timeout value.
@@ -42,10 +40,8 @@ When the requests should run in a `loop` set it with a timeout value.
 ```javascript
 var apirequests = require('apirequests');
 
-var rules = [...];
-
 var apitest = apirequests({loop: 2000});
-apitest.run(rules);
+apitest.run('rules.json');
 ```
 
 ## How to define rules
@@ -101,11 +97,11 @@ Some examples how to define rules.
 
 ## Results
 
-Per default the result be print out and look like the picture below.
+Per default the result be print out and looks like the picture below.
 
 ![Console](https://raw.githubusercontent.com/DBProductions/apirequests/master/screenshots/console.png)
 
-When the options object have a property output set to html then a HTML file gets created.
+The HTML file which can get created.
 
 ![HTML](https://raw.githubusercontent.com/DBProductions/apirequests/master/screenshots/html.png)
 
