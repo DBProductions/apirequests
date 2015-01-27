@@ -207,13 +207,13 @@ var apirequests = function apirequests(opts) {
                 if (opts.output === 'print') {                
                     console.log('Start again with', tasks.length, 'Tasks', 'made ' + loopCount + ' runs', '\n');
                 }
-                responses = [];                
-                for (var i = 0; i < tasks.length; i++) {
-                    tasks[i].reqstart = (+new Date());
-                    call(tasks[i], function(response) {
+                responses = [];              
+                tasks.map(function(currentValue) {
+                    currentValue.reqstart = (+new Date());
+                    call(currentValue, function(response) {
                         getResponse(response);
                     });
-                }
+                });
                 checkResponses(opts);
             }
         } else {
@@ -262,13 +262,13 @@ var apirequests = function apirequests(opts) {
     /**
      * start the calls after everything is prepared
      */
-    function start() {        
-        for(var i = 0; i < tasks.length; i++) {
-            tasks[i].reqstart = (+new Date());
-            call(tasks[i], function(response) {
+    function start() {
+        tasks.map(function(currentValue) {
+            currentValue.reqstart = (+new Date());
+            call(currentValue, function(response) {
                 getResponse(response);
             });
-        }
+        });
         checkResponses(opts);
     }
     

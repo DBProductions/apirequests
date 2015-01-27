@@ -38,16 +38,12 @@ apitest.run('rules.json');
 When the requests should run in a `loop` set it with a timeout value.
 
 ```javascript
-var apirequests = require('apirequests');
-
-var apitest = apirequests({loop: 2000});
-apitest.run('rules.json');
+require('apirequests')({loop: 2000}).run('rules.json');
 ```
 
 ## How to define rules
 
-A rule take basically a `uri` to run, a `method` is optinal, the default value is GET.  
-To send headers define them as `headers` object and define a `form` object inside of the rule to send data.  
+A rule take basically a `uri` to run, a `method` is optinal, GET is the default value. To send headers define them as `headers` object and define a `form` object inside of the rule to send data.  
 To test the response, define inside of the rule a response object. The response object can have a `statuscode`, `data` and a `headers` object, this object can check `contenttype`, `contentlength`, `cachecontrol` and `server`.
 
 Some examples how to define rules.
