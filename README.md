@@ -95,11 +95,11 @@ Some examples how to define rules.
 
 Per default the result be print out and looks like the picture below.
 
-![Console](https://raw.githubusercontent.com/DBProductions/apirequests/master/screenshots/console.png)
+![Console](https://dbgaecdn.appspot.com/images/apirequests_console.png)
 
 The HTML file which can get created.
 
-![HTML](https://raw.githubusercontent.com/DBProductions/apirequests/master/screenshots/html.png)
+![HTML](https://dbgaecdn.appspot.com/images/apirequests_html.png)
 
 ## Feedback
 Star this repo if you found it useful. Use the github issue tracker to give feedback on this repo.
