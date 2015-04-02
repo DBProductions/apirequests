@@ -67,16 +67,22 @@ var apirequests = function apirequests(opts) {
             failed = 0,
             difference = Math.round((new Date().getTime() - startTime));
         for(var i = 0; i < results.length; i++) {
+            var msg = '';
             var requestTime = Math.round((results[i].result.reqend - results[i].task.reqstart));
             if (!results[i].output.pass && results[i].task.response) {
-                console.log(colors.red('* FAIL') + ' - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime + ' milliseconds', results[i].output.msg);                    
+                if (results[i].output.msg.length > 0) {                    
+                    results[i].output.msg.forEach(function(value) {
+                        msg += "\t- " + value.trim() + "\n";
+                    });
+                }                
+                console.log(colors.red('* FAIL') + '  - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime + ' milliseconds\n', msg);                    
                 failed += 1;
             } else {
                 if (results[i].task.response) {
-                    console.log(colors.green('* PASS') + ' - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime + ' milliseconds', results[i].output.msg);
+                    console.log(colors.green('* PASS') + '  - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime + ' milliseconds\n');
                     passed += 1;
                 } else {
-                    console.log(colors.green('* RUN') + ' - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime + ' milliseconds', results[i].output.msg);
+                    console.log(colors.green('* RUN') + '  - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime + ' milliseconds\n');
                 }                        
             }
         }
@@ -104,17 +110,20 @@ var apirequests = function apirequests(opts) {
         for(var i = 0; i < results.length; i++) {
             var requestTime = Math.round((results[i].result.reqend - results[i].task.reqstart));
             if (!results[i].output.pass && results[i].task.response) {
-                content += '<div><strong class="error">* FAIL</strong> - ' + results[i].task.num + ' ' + results[i].task.method + ' ' + results[i].task.uri + ' in ' + requestTime + ' milliseconds';
-                content += results[i].output.msg.replace(/\n/g, '<br>').replace(/ /g, '&nbsp;') + '</div><br>';
+                content += '<div><strong class="error">* FAIL</strong> - ' + results[i].task.num + ' ' + results[i].task.method + ' ' + results[i].task.uri + ' in ' + requestTime + ' milliseconds<br>';
+                if (results[i].output.msg.length > 0) {                    
+                    results[i].output.msg.forEach(function(value) {
+                        content += "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - " + value.trim() + "<br>";
+                    });
+                }
+                content += '</div><br>';
                 failed += 1;
             } else {
                 if (results[i].task.response) {
-                        content += '<div><span class="pass">* PASS</span> - ' + results[i].task.num + ' ' + results[i].task.method + ' ' + results[i].task.uri + ' in ' + requestTime + ' milliseconds<br>';
-                        content += results[i].output.msg.replace("\n", "<br>").replace(/ /g, '&nbsp;') + '</div>';
+                        content += '<div><span class="pass">* PASS</span> - ' + results[i].task.num + ' ' + results[i].task.method + ' ' + results[i].task.uri + ' in ' + requestTime + ' milliseconds<br><br></div>';
                         passed += 1;
                 } else {
-                        content += '<div><span class="pass">* RUN' + '</span> - ' + results[i].task.num + ' ' + results[i].task.method + ' ' + results[i].task.uri + ' in ' + requestTime + ' milliseconds<br>';
-                        content += results[i].output.msg.replace("\n", "<br>").replace(/ /g, '&nbsp;') + '</div>';
+                        content += '<div><span class="pass">* RUN' + '</span> - ' + results[i].task.num + ' ' + results[i].task.method + ' ' + results[i].task.uri + ' in ' + requestTime + ' milliseconds<br><br></div>';
                 }                        
             }
         }
@@ -142,47 +151,47 @@ var apirequests = function apirequests(opts) {
     function setOutputs(results) {
         for(var i = 0; i < results.length; i++) {
             results[i].output = {};
-            results[i].output.msg = '\n';
+            results[i].output.msg = [];
             if (results[i].task.response) {                    
                 results[i].output.pass = false;
                 // status code
                 if (results[i].task.response.statuscode !== results[i].result.statusCode) {
-                    results[i].output.msg += '       - ' + results[i].task.response.statuscode + ' is not equal ' + results[i].result.statusCode + '\n';
+                    results[i].output.msg.push(results[i].task.response.statuscode + ' is not equal ' + results[i].result.statusCode);
                 }                    
                 // headers                    
                 if (results[i].task.response.headers) {
                     // contenttype
                     if (results[i].task.response.headers.contenttype) {
                         if (results[i].task.response.headers.contenttype !== results[i].result.headers['content-type']) {
-                            results[i].output.msg += '       - ' + results[i].task.response.headers.contenttype + ' is not equal ' + results[i].result.headers['content-type'] + '\n';
+                            results[i].output.msg.push(results[i].task.response.headers.contenttype + ' is not equal ' + results[i].result.headers['content-type']);
                         }
                     }
                     // contentlength
                     if (results[i].task.response.headers.contentlength) {
                         if (results[i].task.response.headers.contentlength !== results[i].result.headers['content-length']) {
-                            results[i].output.msg += '       - ' + results[i].task.response.headers.contentlength + ' is not equal ' + results[i].result.headers['content-length'] + '\n';
+                            results[i].output.msg.push(results[i].task.response.headers.contentlength + ' is not equal ' + results[i].result.headers['content-length']);
                         }
                     }
                     // server
                     if (results[i].task.response.headers.server) {
                         if (results[i].task.response.headers.server !== results[i].result.headers.server) {
-                            results[i].output.msg += '       - ' + results[i].task.response.headers.server + ' is not equal ' + results[i].result.headers.server + '\n';
+                            results[i].output.msg.push(results[i].task.response.headers.server + ' is not equal ' + results[i].result.headers.server);
                         }
                     }
                     // cachecontrol
                     if (results[i].task.response.headers.cachecontrol) {
                         if (results[i].task.response.headers.cachecontrol !== results[i].result.headers['cache-control']) {
-                            results[i].output.msg += '       - ' + results[i].task.response.headers.cachecontrol + ' is not equal ' + results[i].result.headers['cache-control'] + '\n';
+                            results[i].output.msg.push(results[i].task.response.headers.cachecontrol + ' is not equal ' + results[i].result.headers['cache-control']);
                         }
                     }
                 }
                 // body
                 if (results[i].task.response.data) {
                     if (results[i].task.response.data !== results[i].result.body) {
-                        results[i].output.msg += '       - ' + results[i].task.response.data + ' is not equal ' + results[i].result.body + '\n';
+                        results[i].output.msg.push(results[i].task.response.data + ' is not equal ' + results[i].result.body);
                     }
                 }
-                if (results[i].output.msg === '\n') {
+                if (results[i].output.msg.length === 0) {
                     results[i].output.pass = true;
                 }
             }
@@ -217,7 +226,7 @@ var apirequests = function apirequests(opts) {
                 checkResponses(opts);
             }
         } else {
-            setTimeout(function(){ checkResponses(opts); }, 10);
+            setTimeout(function(){ checkResponses(opts); }, 5);
         }
     }
     /**
