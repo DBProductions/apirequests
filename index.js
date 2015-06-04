@@ -11,6 +11,9 @@ var apirequests = function apirequests(opts) {
     opts.output = opts.output || 'print';
     opts.outputfile = opts.outputfile || 'reports.html';
     opts.outputpath = opts.outputpath || './';
+    opts.outputpath = opts.outputpath || './';
+    opts.connectionurl = opts.connectionurl || null;
+    opts.collection = opts.collection || 'results';    
     // set some variables
     var startTime = 0,
         loopCount = 1,
@@ -106,7 +109,11 @@ var apirequests = function apirequests(opts) {
         var passed = 0,
             failed = 0,
             difference = Math.round((new Date().getTime() - startTime));
-        var content = '<html><head><style>.error{color:red;}.pass{color:green;}</style></head><body><h1>apirequests report</h1>';
+        var content = '<html><head>';
+        if (opts.loop) {
+            content += '<meta http-equiv="refresh" content="' + Math.round(opts.loop/1000) + '">';    
+        }
+        content += '<style>.error{color:red;}.pass{color:green;}</style></head><body><h1>apirequests report</h1>';
         for(var i = 0; i < results.length; i++) {
             var requestTime = Math.round((results[i].result.reqend - results[i].task.reqstart));
             if (!results[i].output.pass && results[i].task.response) {
@@ -146,6 +153,24 @@ var apirequests = function apirequests(opts) {
         });
     }
     /**
+     * store results in MongoDB
+     */
+    function storeResults(results, opts) {
+        var MongoClient = require('mongodb').MongoClient;        
+        MongoClient.connect(opts.connectionurl, function(err, db) {
+            if(err) throw err;
+            var docs = [];
+            for(var i = 0; i < results.length; i++) {
+                docs.push({output: results[i].output, task: results[i].task});
+            }
+            db.collection(opts.collection).insert(docs, function(err, response) {
+                if(err) throw err;
+                console.log(colors.green('Saved to ' + opts.connectionurl + ' in ' + opts.collection), response.result);
+                db.close();
+            });
+        });
+    }
+    /**
      * set the output property of the results object
      */
     function setOutputs(results) {
@@ -157,7 +182,13 @@ var apirequests = function apirequests(opts) {
                 // status code
                 if (results[i].task.response.statuscode !== results[i].result.statusCode) {
                     results[i].output.msg.push(results[i].task.response.statuscode + ' is not equal ' + results[i].result.statusCode);
-                }                    
+                }
+                // host
+                if (results[i].task.response.host) {
+                    if (results[i].task.response.host !== results[i].result.request.host) {
+                        results[i].output.msg.push(results[i].task.response.host + ' is not equal ' + results[i].result.request.host);
+                    }
+                }
                 // headers                    
                 if (results[i].task.response.headers) {
                     // contenttype
@@ -209,6 +240,8 @@ var apirequests = function apirequests(opts) {
                 printResults(results);
             } else if (opts.output === 'html') {
                 writeResults(results, opts);                
+            } else if (opts.output === 'db') {
+                storeResults(results, opts);                
             }
             if (opts.loop) {
                 loopCount += 1;
@@ -226,14 +259,13 @@ var apirequests = function apirequests(opts) {
                 checkResponses(opts);
             }
         } else {
-            setTimeout(function(){ checkResponses(opts); }, 5);
+            setTimeout(function(){ checkResponses(opts); }, 1);
         }
     }
     /**
      * build the tasks, make some chacks and skip wrong data
      */
     function buildTasks(rules) {
-        // build the tasks from rules param
         var i, options;
         for(i = 0; i < rules.length; i++) {
             options = {};
@@ -269,7 +301,7 @@ var apirequests = function apirequests(opts) {
         }
     }
     /**
-     * start the calls after everything is prepared
+     * start the calls and check the responses
      */
     function start() {
         tasks.map(function(currentValue) {
@@ -283,7 +315,7 @@ var apirequests = function apirequests(opts) {
     
     return {
         /**
-         * return run method to start the requests
+         * run method checks the rules, build tasks and start the requests
          */
         run: function(rules) {
             if (!rules) { 

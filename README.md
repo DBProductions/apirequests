@@ -25,6 +25,22 @@ var apitest = apirequests();
 apitest.run('rules.json');
 ```
 
+Use a store engine, like MongoDB, for storing the rules.
+
+```javascript
+var apirequests = require('./index');
+var MongoClient = require('mongodb').MongoClient;
+  
+MongoClient.connect('mongodb://127.0.0.1:27017/apirequests', function(err, db) {
+    if(err) throw err;
+    var apitest = apirequests();
+    db.collection('urls').find().toArray(function(err, results) {
+        apitest.run(results);
+        db.close();
+    }); 
+});
+```
+
 Options are optional, per default the result be print out.
 It's also possible to define `output`, `outputfile` and `outputpath` to save the html file.  
 
@@ -39,6 +55,29 @@ When the requests should run in a `loop` set it with a timeout value.
 
 ```javascript
 require('apirequests')({loop: 2000}).run('rules.json');
+```
+
+To save the results in a MongoDB, define `connectionurl` and `collection`.  
+The default values are `mongodb://127.0.0.1:27017/apirequests` and `results`.
+
+```javascript
+var apirequests = require('./index');
+var MongoClient = require('mongodb').MongoClient;
+
+var connectionUrl = 'mongodb://127.0.0.1:27017/requests';
+var opts = {output: 'db', connectionurl: connectionUrl};
+
+MongoClient.connect(connectionUrl, function(err, db) {
+    if(err) throw err;
+    
+    var apitest = apirequests(opts);
+
+    db.collection('urls').find().toArray(function(err, results) {
+        if(err) throw err;
+        apitest.run(results);
+        db.close();
+    }); 
+});
 ```
 
 ## How to define rules
