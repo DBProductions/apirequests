@@ -30,14 +30,14 @@ Use a store engine, like MongoDB, for storing the rules.
 ```javascript
 var apirequests = require('./index');
 var MongoClient = require('mongodb').MongoClient;
-  
+
 MongoClient.connect('mongodb://127.0.0.1:27017/apirequests', function(err, db) {
     if(err) throw err;
     var apitest = apirequests();
     db.collection('urls').find().toArray(function(err, results) {
         apitest.run(results);
         db.close();
-    }); 
+    });
 });
 ```
 
@@ -69,14 +69,14 @@ var opts = {output: 'db', connectionurl: connectionUrl};
 
 MongoClient.connect(connectionUrl, function(err, db) {
     if(err) throw err;
-    
+
     var apitest = apirequests(opts);
 
     db.collection('urls').find().toArray(function(err, results) {
         if(err) throw err;
         apitest.run(results);
         db.close();
-    }); 
+    });
 });
 ```
 
@@ -84,7 +84,7 @@ MongoClient.connect(connectionUrl, function(err, db) {
 
 A rule take basically a `uri` to run, a `method` is optinal, GET is the default value.  
 To send headers define them as `headers` object and define a `form` object inside of the rule to send data when needed.  
-To test the response, define inside of the rule a response object. The response object can have a `statuscode`, `data` and a `headers` object, this object can check `contenttype`, `contentlength`, `cachecontrol` and `server`.
+To test the response, define inside of the rule a response object. The response object can have a `statuscode`, `data`, `regex` and a `headers` object, this object can check `contenttype`, `contentlength`, `cachecontrol` and `server`.
 
 Some examples how to define rules.
 
@@ -94,13 +94,13 @@ Some examples how to define rules.
     uri: 'http://webservice-point.appspot.com/test'
 },
 {
-    method: 'post', 
+    method: 'post',
     uri: 'http://webservice-point.appspot.com/test',
     form: {
         name: "apirequests",
         test: "post"
     },
-    headers: { 
+    headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
     },
     response: {
@@ -109,7 +109,7 @@ Some examples how to define rules.
     }
 },
 {
-    method: 'put', 
+    method: 'put',
     uri: 'http://webservice-point.appspot.com/test/123',
     response: {
         statuscode: 404,
@@ -120,13 +120,26 @@ Some examples how to define rules.
     }
 },
 {
-    method: 'delete', 
+    method: 'patch',
+    uri: 'http://webservice-point.appspot.com/test/123',
+    response: {
+        statuscode: 404,
+        headers: {
+            contenttype: 'text/html; charset=UTF-8',
+            contentlength: '285'
+        }
+    }
+},
+{
+    method: 'delete',
     uri: 'http://webservice-point.appspot.com/test',
     response: {
         statuscode: 404,
         headers: {
             contenttype: 'text/html; charset=UTF-8'
-        }
+        },
+        data: 'error',
+        regex: true
     }
 }]
 ```

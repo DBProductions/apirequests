@@ -218,8 +218,15 @@ var apirequests = function apirequests(opts) {
                 }
                 // body
                 if (results[i].task.response.data) {
-                    if (results[i].task.response.data !== results[i].result.body) {
-                        results[i].output.msg.push(results[i].task.response.data + ' is not equal ' + results[i].result.body);
+                    if (results[i].task.response.regex) {
+                        var re = new RegExp(results[i].task.response.data);
+                        if (!re.exec(results[i].result.body)) {
+                            results[i].output.msg.push(results[i].result.body + ' not includes ' + results[i].task.response.data);
+                        }
+                    } else {
+                        if (results[i].task.response.data !== results[i].result.body) {
+                            results[i].output.msg.push(results[i].task.response.data + ' is not equal ' + results[i].result.body);
+                        }
                     }
                 }
                 if (results[i].output.msg.length === 0) {
