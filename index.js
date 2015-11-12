@@ -1,10 +1,10 @@
-var request = require("request"),
-    colors = require('colors'),
-    fs = require('fs');
 /**
  * apirequests
  */
-var apirequests = function apirequests(opts) {
+var request = require("request"),
+    colors = require('colors'),
+    fs = require('fs'),
+    apirequests = function apirequests(opts) {
     "use strict";
     // set defaults
     if (!opts) { opts = {}; }
@@ -72,20 +72,25 @@ var apirequests = function apirequests(opts) {
         for(var i = 0; i < results.length; i++) {
             var msg = '';
             var requestTime = Math.round((results[i].result.reqend - results[i].task.reqstart));
+            requestTime +=  ' milliseconds';
+            if (results[i].task.delay) {
+                requestTime +=  ' delayed with ' + results[i].task.delay;
+            }
+            requestTime +=  '\n';
             if (!results[i].output.pass && results[i].task.response) {
                 if (results[i].output.msg.length > 0) {
                     results[i].output.msg.forEach(function(value) {
                         msg += "\t- " + value.trim() + "\n";
                     });
                 }
-                console.log(colors.red('* FAIL') + '  - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime + ' milliseconds\n', msg);
+                console.log(colors.red('* FAIL') + '  - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime, msg);
                 failed += 1;
             } else {
                 if (results[i].task.response) {
-                    console.log(colors.green('* PASS') + '  - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime + ' milliseconds\n');
+                    console.log(colors.green('* PASS') + '  - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime);
                     passed += 1;
                 } else {
-                    console.log(colors.green('* RUN') + '  - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime + ' milliseconds\n');
+                    console.log(colors.green('* RUN') + '  - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime);
                 }
             }
         }
@@ -116,8 +121,12 @@ var apirequests = function apirequests(opts) {
         content += '<style>.error{color:red;}.pass{color:green;}</style></head><body><h1>apirequests report</h1>';
         for(var i = 0; i < results.length; i++) {
             var requestTime = Math.round((results[i].result.reqend - results[i].task.reqstart));
+            requestTime +=  ' milliseconds';
+            if (results[i].task.delay) {
+                requestTime +=  ' delayed with ' + results[i].task.delay;
+            }
             if (!results[i].output.pass && results[i].task.response) {
-                content += '<div><strong class="error">* FAIL</strong> - ' + results[i].task.num + ' ' + results[i].task.method + ' ' + results[i].task.uri + ' in ' + requestTime + ' milliseconds<br>';
+                content += '<div><strong class="error">* FAIL</strong> - ' + results[i].task.num + ' ' + results[i].task.method + ' ' + results[i].task.uri + ' in ' + requestTime + '<br>';
                 if (results[i].output.msg.length > 0) {
                     results[i].output.msg.forEach(function(value) {
                         content += "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - " + value.trim() + "<br>";
@@ -127,10 +136,10 @@ var apirequests = function apirequests(opts) {
                 failed += 1;
             } else {
                 if (results[i].task.response) {
-                        content += '<div><span class="pass">* PASS</span> - ' + results[i].task.num + ' ' + results[i].task.method + ' ' + results[i].task.uri + ' in ' + requestTime + ' milliseconds<br><br></div>';
+                        content += '<div><span class="pass">* PASS</span> - ' + results[i].task.num + ' ' + results[i].task.method + ' ' + results[i].task.uri + ' in ' + requestTime + '<br><br></div>';
                         passed += 1;
                 } else {
-                        content += '<div><span class="pass">* RUN' + '</span> - ' + results[i].task.num + ' ' + results[i].task.method + ' ' + results[i].task.uri + ' in ' + requestTime + ' milliseconds<br><br></div>';
+                        content += '<div><span class="pass">* RUN' + '</span> - ' + results[i].task.num + ' ' + results[i].task.method + ' ' + results[i].task.uri + ' in ' + requestTime + '<br><br></div>';
                 }
             }
         }
@@ -291,6 +300,9 @@ var apirequests = function apirequests(opts) {
                     options.uri = false;
                 }
             }
+            if (rules[i].delay) {
+                options.delay = rules[i].delay;
+            }
             if (rules[i].form) {
                 options.form = rules[i].form;
             }
@@ -313,9 +325,17 @@ var apirequests = function apirequests(opts) {
     function start() {
         tasks.map(function(currentValue) {
             currentValue.reqstart = (+new Date());
-            call(currentValue, function(response) {
-                getResponse(response);
-            });
+            if (currentValue.delay) {
+                setTimeout(function() {
+                    call(currentValue, function(response) {
+                        getResponse(response);
+                    });
+                }, currentValue.delay);
+            } else {
+                call(currentValue, function(response) {
+                    getResponse(response);
+                });
+            }
         });
         checkResponses(opts);
     }
