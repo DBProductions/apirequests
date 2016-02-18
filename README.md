@@ -1,7 +1,7 @@
 # apirequests
 
 Call several API resources in a simple way with JSON defined rules.  
-Can test several backends if the resources are responsing like expected.
+Can test several backends if the resources are response like expected.
 
 [![NPM](https://nodei.co/npm/apirequests.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/apirequests/)
 

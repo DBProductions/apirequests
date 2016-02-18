@@ -1,147 +1,156 @@
 /**
- * apirequests
+ * APIrequests
+ * Take rules as JSON and execute requests.
  */
-var request = require("request"),
+var request = require('request'),
     colors = require('colors'),
     fs = require('fs'),
     apirequests = function apirequests(opts) {
-    "use strict";
-    // set defaults
-    if (!opts) { opts = {}; }
-    opts.output = opts.output || 'print';
-    opts.outputfile = opts.outputfile || 'reports.html';
-    opts.outputpath = opts.outputpath || './';
-    opts.outputpath = opts.outputpath || './';
-    opts.connectionurl = opts.connectionurl || null;
-    opts.collection = opts.collection || 'results';
-    // set some variables
-    var startTime = 0,
-        loopCount = 1,
-        tasks = [],
-        responses = [],
-        methods = ['GET','POST','PUT','PATCH','DELETE','HEAD','OPTIONS'];
-    /**
-     * check uri
-     */
-    function checkUri(s) {
+      'use strict';
+      // Set defaults
+      if (!opts) { opts = {}; }
+      opts.output = opts.output || 'print';
+      opts.outputfile = opts.outputfile || 'reports.html';
+      opts.outputpath = opts.outputpath || './';
+      opts.outputpath = opts.outputpath || './';
+      opts.connectionurl = opts.connectionurl || null;
+      opts.collection = opts.collection || 'results';
+      // Set some variables
+      var startTime = 0,
+          loopCount = 1,
+          tasks = [],
+          responses = [],
+          methods = ['GET','POST','PUT','PATCH','DELETE','HEAD','OPTIONS'];
+      /**
+       * Check uri
+       */
+      function checkUri(s) {
         var r = /(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?/;
         return r.test(s);
-    }
-    /**
-     * collect the responses
-     */
-    function getResponse(response) {
+      }
+      /**
+       * Collect the responses
+       */
+      function getResponse(response) {
         responses.push(response);
-    }
-    /**
-     * do the request
-     */
-    function call(opts, cb) {
+      }
+      /**
+       * Do the request
+       */
+      function call(opts, cb) {
         request(opts, function(err, res, body) {
-            if (err) {
-                cb(err);
-            } else {
-                res.num = opts.num;
-                res.reqend = (+new Date());
-                cb(res, body);
-            }
+          if (err) {
+            cb(err);
+          } else {
+            res.num = opts.num;
+            res.reqend = (+new Date());
+            cb(res, body);
+          }
         });
-    }
-    /**
-     * fill results with matching tasks and responses
-     */
-    function fillResults(tasks, responses) {
+      }
+      /**
+       * Fill results with matching tasks and responses
+       */
+      function fillResults(tasks, responses) {
         var results = [];
-        for(var i = 0; i < tasks.length; i++) {
-            for(var j = 0; j < responses.length; j++) {
-                if (tasks[i].num === responses[j].num) {
-                    results.push({task:tasks[i],result:responses[j]});
-                    responses.splice(j, 1);
-                }
+        for (var i = 0; i < tasks.length; i++) {
+          for (var j = 0; j < responses.length; j++) {
+            if (tasks[i].num === responses[j].num) {
+              results.push({task: tasks[i], result: responses[j]});
+              responses.splice(j, 1);
             }
+          }
         }
         return results;
-    }
-    /**
-     * print results on console
-     */
-    function printResults(results) {
+      }
+      /**
+       * Print results on console
+       */
+      function printResults(results) {
         var passed = 0,
             failed = 0,
+            msg = '',
+            requestTime,
+            finishMsg,
+            i,
             difference = Math.round((new Date().getTime() - startTime));
-        for(var i = 0; i < results.length; i++) {
-            var msg = '';
-            var requestTime = Math.round((results[i].result.reqend - results[i].task.reqstart));
-            requestTime +=  ' milliseconds';
-            if (results[i].task.delay) {
-                requestTime +=  ' delayed with ' + results[i].task.delay;
+        for (i = 0; i < results.length; i++) {
+          msg = '';
+          requestTime = Math.round((results[i].result.reqend - results[i].task.reqstart));
+          requestTime +=  ' milliseconds';
+          if (results[i].task.delay) {
+            requestTime +=  ' delayed with ' + results[i].task.delay;
+          }
+          requestTime +=  '\n';
+          if (!results[i].output.pass && results[i].task.response) {
+            if (results[i].output.msg.length > 0) {
+              results[i].output.msg.forEach(function(value) {
+                msg += '\t- ' + value.trim() + '\n';
+              });
             }
-            requestTime +=  '\n';
-            if (!results[i].output.pass && results[i].task.response) {
-                if (results[i].output.msg.length > 0) {
-                    results[i].output.msg.forEach(function(value) {
-                        msg += "\t- " + value.trim() + "\n";
-                    });
-                }
-                console.log(colors.red('* FAIL') + '  - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime, msg);
-                failed += 1;
+            console.log(colors.red('* FAIL') + '  - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime, msg);
+            failed += 1;
+          } else {
+            if (results[i].task.response) {
+              console.log(colors.green('* PASS') + '  - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime);
+              passed += 1;
             } else {
-                if (results[i].task.response) {
-                    console.log(colors.green('* PASS') + '  - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime);
-                    passed += 1;
-                } else {
-                    console.log(colors.green('* RUN') + '  - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime);
-                }
+              console.log(colors.green('* RUN') + '  - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime);
             }
+          }
         }
-        console.log('Finish ' + results.length + ' tasks in ' + difference + ' milliseconds.');
-        var msg = 'Have passed ' + passed + ' and failed ' + failed;
+        finishMsg = 'Finish ' + results.length;
+        finishMsg +=  ' tasks in ' + difference + ' milliseconds.';
+        console.log(finishMsg);
+        msg = 'Have passed ' + passed + ' and failed ' + failed;
         if (failed === 1) {
-            msg += ' task.\n';
+          msg += ' task.\n';
         } else {
-            msg += ' tasks.\n';
+          msg += ' tasks.\n';
         }
         if (failed > 0) {
-            console.log(colors.red(msg));
+          console.log(colors.red(msg));
         } else {
-            console.log(colors.green(msg));
+          console.log(colors.green(msg));
         }
-    }
-    /**
-     * write results to html file
-     */
-    function writeResults(results, opts) {
+      }
+      /**
+       * Write results to html file
+       */
+      function writeResults(results, opts) {
         var passed = 0,
             failed = 0,
-            difference = Math.round((new Date().getTime() - startTime));
-        var content = '<html><head>';
+            requestTime,
+            i,
+            difference = Math.round((new Date().getTime() - startTime)),
+            content = '<html><head>';
         if (opts.loop) {
-            content += '<meta http-equiv="refresh" content="' + Math.round(opts.loop/1000) + '">';
+            content += '<meta http-equiv="refresh" content="' + Math.round(opts.loop / 1000) + '">';
         }
         content += '<style>.error{color:red;}.pass{color:green;}</style></head><body><h1>apirequests report</h1>';
-        for(var i = 0; i < results.length; i++) {
-            var requestTime = Math.round((results[i].result.reqend - results[i].task.reqstart));
-            requestTime +=  ' milliseconds';
-            if (results[i].task.delay) {
-                requestTime +=  ' delayed with ' + results[i].task.delay;
+        for (i = 0; i < results.length; i++) {
+          requestTime = Math.round((results[i].result.reqend - results[i].task.reqstart));
+          requestTime +=  ' milliseconds';
+          if (results[i].task.delay) {
+            requestTime +=  ' delayed with ' + results[i].task.delay;
+          }
+          if (!results[i].output.pass && results[i].task.response) {
+            content += '<div><strong class="error">* FAIL</strong> - ' + results[i].task.num + ' ' + results[i].task.method + ' ' + results[i].task.uri + ' in ' + requestTime + '<br>';
+            if (results[i].output.msg.length > 0) {
+              results[i].output.msg.forEach(function(value) {
+                content += "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - " + value.trim() + "<br>";
+              });
             }
-            if (!results[i].output.pass && results[i].task.response) {
-                content += '<div><strong class="error">* FAIL</strong> - ' + results[i].task.num + ' ' + results[i].task.method + ' ' + results[i].task.uri + ' in ' + requestTime + '<br>';
-                if (results[i].output.msg.length > 0) {
-                    results[i].output.msg.forEach(function(value) {
-                        content += "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - " + value.trim() + "<br>";
-                    });
-                }
-                content += '</div><br>';
-                failed += 1;
+            content += '</div><br>';
+            failed += 1;
+          } else {
+            if (results[i].task.response) {
+              content += '<div><span class="pass">* PASS</span> - ' + results[i].task.num + ' ' + results[i].task.method + ' ' + results[i].task.uri + ' in ' + requestTime + '<br><br></div>';
+              passed += 1;
             } else {
-                if (results[i].task.response) {
-                        content += '<div><span class="pass">* PASS</span> - ' + results[i].task.num + ' ' + results[i].task.method + ' ' + results[i].task.uri + ' in ' + requestTime + '<br><br></div>';
-                        passed += 1;
-                } else {
-                        content += '<div><span class="pass">* RUN' + '</span> - ' + results[i].task.num + ' ' + results[i].task.method + ' ' + results[i].task.uri + ' in ' + requestTime + '<br><br></div>';
-                }
+              content += '<div><span class="pass">* RUN' + '</span> - ' + results[i].task.num + ' ' + results[i].task.method + ' ' + results[i].task.uri + ' in ' + requestTime + '<br><br></div>';
             }
+          }
         }
         content += '<div>Finish ' + results.length + ' tasks in ' + difference + ' milliseconds.</div>';
         var msg = '<div>Have passed ' + passed + ' and failed ' + failed;
@@ -162,70 +171,71 @@ var request = require("request"),
         });
     }
     /**
-     * store results in MongoDB
+     * Store results in MongoDB
      */
     function storeResults(results, opts) {
-        var MongoClient = require('mongodb').MongoClient;
+        var MongoClient = require('mongodb').MongoClient,
+            docs;
         MongoClient.connect(opts.connectionurl, function(err, db) {
-            if(err) throw err;
-            var docs = [];
-            for(var i = 0; i < results.length; i++) {
-                docs.push({output: results[i].output, task: results[i].task});
-            }
-            db.collection(opts.collection).insert(docs, function(err, response) {
-                if(err) throw err;
-                console.log(colors.green('Saved to ' + opts.connectionurl + ' in ' + opts.collection), response.result);
-                db.close();
-            });
+          if (err) { throw err; }
+          docs = [];
+          for (var i = 0; i < results.length; i++) {
+            docs.push({output: results[i].output, task: results[i].task});
+          }
+          db.collection(opts.collection).insert(docs, function(err, response) {
+            if (err) { throw err; }
+            console.log(colors.green('Saved to ' + opts.connectionurl + ' in ' + opts.collection), response.result);
+            db.close();
+          });
         });
-    }
-    /**
-     * set the output property of the results object
-     */
-    function setOutputs(results) {
-        for(var i = 0; i < results.length; i++) {
+      }
+      /**
+       * Set the output property of the results object
+       */
+      function setOutputs(results) {
+        for (var i = 0; i < results.length; i++) {
             results[i].output = {};
             results[i].output.msg = [];
             if (results[i].task.response) {
                 results[i].output.pass = false;
-                // status code
+                // Status code
                 if (results[i].task.response.statuscode !== results[i].result.statusCode) {
                     results[i].output.msg.push(results[i].task.response.statuscode + ' is not equal ' + results[i].result.statusCode);
                 }
-                // host
+                // Host
                 if (results[i].task.response.host) {
                     if (results[i].task.response.host !== results[i].result.request.host) {
                         results[i].output.msg.push(results[i].task.response.host + ' is not equal ' + results[i].result.request.host);
                     }
                 }
-                // headers
+                // Headers
                 if (results[i].task.response.headers) {
-                    // contenttype
+                    // Contenttype
                     if (results[i].task.response.headers.contenttype) {
                         if (results[i].task.response.headers.contenttype !== results[i].result.headers['content-type']) {
                             results[i].output.msg.push(results[i].task.response.headers.contenttype + ' is not equal ' + results[i].result.headers['content-type']);
                         }
                     }
-                    // contentlength
+                    // Contentlength
                     if (results[i].task.response.headers.contentlength) {
                         if (results[i].task.response.headers.contentlength !== results[i].result.headers['content-length']) {
                             results[i].output.msg.push(results[i].task.response.headers.contentlength + ' is not equal ' + results[i].result.headers['content-length']);
                         }
                     }
-                    // server
+                    // Server
                     if (results[i].task.response.headers.server) {
                         if (results[i].task.response.headers.server !== results[i].result.headers.server) {
                             results[i].output.msg.push(results[i].task.response.headers.server + ' is not equal ' + results[i].result.headers.server);
                         }
                     }
-                    // cachecontrol
+                    // Cachecontrol
                     if (results[i].task.response.headers.cachecontrol) {
                         if (results[i].task.response.headers.cachecontrol !== results[i].result.headers['cache-control']) {
                             results[i].output.msg.push(results[i].task.response.headers.cachecontrol + ' is not equal ' + results[i].result.headers['cache-control']);
                         }
                     }
                 }
-                // body
+                // Body
                 if (results[i].task.response.data) {
                     if (results[i].task.response.regex) {
                         var re = new RegExp(results[i].task.response.data);
@@ -246,7 +256,7 @@ var request = require("request"),
         return results;
     }
     /**
-     * check the responses
+     * Check the responses
      */
     function checkResponses(opts) {
         if (tasks.length === responses.length) {
@@ -279,7 +289,7 @@ var request = require("request"),
         }
     }
     /**
-     * build the tasks, make some chacks and skip wrong data
+     * Build the tasks, make some chacks and skip wrong data
      */
     function buildTasks(rules) {
         var i, options;

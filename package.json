@@ -22,9 +22,11 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "request": "^2.48.0",
+    "async": "^1.5.2",
     "colors": "^1.0.3",
-    "mongodb": "^2.0.27"
+    "log-symbols": "^1.0.2",
+    "mongodb": "^2.0.27",
+    "request": "^2.48.0"
   },
   "devDependencies": {}
 }
