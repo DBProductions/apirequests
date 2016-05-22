@@ -4,6 +4,7 @@
  */
 var request = require('request'),
     colors = require('colors'),
+    logSymbols = require('log-symbols'),
     fs = require('fs'),
     apirequests = function apirequests(opts) {
       'use strict';
@@ -88,14 +89,14 @@ var request = require('request'),
                 msg += '\t- ' + value.trim() + '\n';
               });
             }
-            console.log(colors.red('* FAIL') + '  - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime, msg);
+            console.log(logSymbols.error, colors.red('FAIL') + '  - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime, msg);
             failed += 1;
           } else {
             if (results[i].task.response) {
-              console.log(colors.green('* PASS') + '  - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime);
+              console.log(logSymbols.success, colors.green('PASS') + '  - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime);
               passed += 1;
             } else {
-              console.log(colors.green('* RUN') + '  - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime);
+              console.log(logSymbols.info, colors.blue('RUN') + '  - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime);
             }
           }
         }
@@ -109,9 +110,9 @@ var request = require('request'),
           msg += ' tasks.\n';
         }
         if (failed > 0) {
-          console.log(colors.red(msg));
+          console.log(logSymbols.error, colors.red(msg));
         } else {
-          console.log(colors.green(msg));
+          console.log(logSymbols.success, colors.green(msg));
         }
       }
       /**
