@@ -28,5 +28,7 @@
     "mongodb": "^2.0.27",
     "request": "^2.48.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "eslint-config-standard": "^5.3.1"
+  }
 }

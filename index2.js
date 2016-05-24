@@ -2,12 +2,13 @@
  * APIrequests
  * Take rules as JSON and execute requests.
  */
-'use strict';
+"use strict";
 let request = require('request'),
     _async = require('async'),
     colors = require('colors'),
     logSymbols = require('log-symbols'),
     fs = require('fs'),
+    _output = require('./lib/output'),
     apirequests,
     startTime = 0,
     loopCount = 1,
@@ -19,63 +20,12 @@ apirequests = function apirequests(opts) {
     if (!opts) { opts = {}; }
     opts.output = opts.output || 'print';
     opts.mode = opts.mode || 'all';
+    opts.onlyFailures = opts.onlyFailures || null;
     opts.outputfile = opts.outputfile || 'reports.html';
     opts.outputpath = opts.outputpath || './';
     opts.outputpath = opts.outputpath || './';
     opts.connectionurl = opts.connectionurl || null;
     opts.collection = opts.collection || 'results';
-
-    /**
-     * Print results on console
-     */
-    function printResults(results) {
-        let passed = 0,
-            failed = 0,
-            msg = '',
-            requestTime,
-            finishMsg,
-            i,
-            difference = Math.round((new Date().getTime() - startTime));
-        for (i = 0; i < results.length; i++) {
-            msg = '';
-            requestTime = Math.round((results[i].result.reqend - results[i].task.reqstart));
-            requestTime +=  ' milliseconds';
-            if (results[i].task.delay) {
-                requestTime +=  ' delayed with ' + results[i].task.delay;
-            }
-            requestTime +=  '\n';
-            if (!results[i].output.pass && results[i].task.response) {
-                if (results[i].output.msg.length > 0) {
-                    results[i].output.msg.forEach(function(value) {
-                        msg += '\t- ' + value.trim() + '\n';
-                    });
-                }
-                console.log(logSymbols.error, colors.red('FAIL') + '  - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime, msg);
-                failed += 1;
-            } else {
-                if (results[i].task.response) {
-                    console.log(logSymbols.success, colors.green('PASS') + '  - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime);
-                    passed += 1;
-                } else {
-                    console.log(logSymbols.info, colors.blue('RUN') + '  - ' + results[i].task.num, results[i].task.method, results[i].task.uri, 'in ' + requestTime);
-                }
-            }
-        }
-        finishMsg = 'Finish ' + results.length;
-        finishMsg +=  ' tasks in ' + difference + ' milliseconds.';
-        console.log(finishMsg);
-        msg = 'Have passed ' + passed + ' and failed ' + failed;
-        if (failed === 1) {
-            msg += ' task.\n';
-        } else {
-            msg += ' tasks.\n';
-        }
-        if (failed > 0) {
-            console.log(colors.red(msg));
-        } else {
-            console.log(colors.green(msg));
-        }
-    }
 
     /**
      * Check uri
@@ -115,11 +65,11 @@ apirequests = function apirequests(opts) {
             var results = fillResults(TASKS, RESPONSES);
             results = setOutputs(results);
             if (opts.output === 'print') {
-                printResults(results);
+                _output.printResults(results, startTime);
             } else if (opts.output === 'html') {
-                writeResults(results, opts);
+                _output.writeResults(results, opts, startTime);
             } else if (opts.output === 'db') {
-                storeResults(results, opts);
+                _output.storeResults(results, opts, startTime);
             }
         } else {
             setTimeout(function(){ checkResponses(opts); }, 1);
@@ -152,8 +102,10 @@ apirequests = function apirequests(opts) {
             if (results[i].task.response) {
                 results[i].output.pass = false;
                 // Status code
-                if (results[i].task.response.statuscode !== results[i].result.statusCode) {
-                    results[i].output.msg.push(results[i].task.response.statuscode + ' is not equal ' + results[i].result.statusCode);
+                if (results[i].task.response.statuscode) {
+                    if (results[i].task.response.statuscode !== results[i].result.statusCode) {
+                        results[i].output.msg.push(results[i].task.response.statuscode + ' is not equal ' + results[i].result.statusCode);
+                    }
                 }
                 // Host
                 if (results[i].task.response.host) {
@@ -223,7 +175,11 @@ apirequests = function apirequests(opts) {
                     options.method = false;
                 }
             } else {
-                options.method = 'GET';
+                if (!rules[i].methods) {
+                    options.method = 'GET';
+                } else {
+                    options.methods = rules[i].methods;
+                }
             }
             if (rules[i].uri) {
                 options.uri = rules[i].uri;
@@ -283,64 +239,45 @@ apirequests = function apirequests(opts) {
             });
             checkResponses(opts);
         } else {
-            /*for (let task of TASKS) {
-                task.reqstart = (+new Date());
-                call(task, function(response) {
-                    console.log(task.responseKey, response.body);
-                    getResponse(response);
-                });
+            if (TASKS.length > 1) {
+                console.log(logSymbols.error, colors.red("Only one ordered task can be defined."));
+            } else {
+                let task = Object.assign({}, TASKS[0]);
+                TASKS = [];
+                if (task.methods) {
+                    for (let method of task.methods) {
+                        let _task = Object.assign({}, task);
+                        _task.method = method;
+                        _task.reqstart = (+new Date());
+                        TASKS.push(_task);
+                    }
+                    for (let task of TASKS) {
+                        call(task, function(response) {
+                            if (task.response) {
+                                console.log(task.method, task.response.key, response.body);
+                                if (response.body) {
+                                    let responseJson;
+                                    if (typeof response.body === 'string') {
+                                        try {
+                                            responseJson = JSON.parse(response.body);
+                                        } catch (ex) {
+                                            responseJson = {};
+                                        }
+                                    }
+                                    console.log(typeof response.body, responseJson);
+                                    if (task.method === "POST" || task.method === "PUT" || task.method === "PATCH") {
+                                        if (responseJson[task.response.key]) {
+                                            console.log(responseJson[task.response.key]);
+                                        }
+                                    }
+                                }
+                            }
+                            getResponse(response);
+                        });
+                    }
+                    checkResponses(opts);
+                }
             }
-            checkResponses(opts);*/
-
-            /*let Caller = {
-                call: function (task, callback) {
-                    task.reqstart = (+new Date());
-                    call(task, function(response) {
-                        callback(null, response);
-                    });
-                }
-            };
-            _async.map(TASKS, Caller.call.bind(Caller), function(err, result) {
-                for (let item of result) {
-                    getResponse(item);
-                }
-                checkResponses(opts);
-            });*/
-            let results = [];
-            _async.waterfall([
-                function (callback) {
-                    TASKS[0].reqstart = (+new Date());
-                    call(TASKS[0], function(response) {
-                        console.log(TASKS[0].responseKey, response.body);
-                        getResponse(response);
-                        callback(null, response);
-                    });
-                },
-                function (data, callback) {
-                    TASKS[1].reqstart = (+new Date());
-                    call(TASKS[1], function(response) {
-                        console.log(TASKS[1].responseKey, response.body);
-                        getResponse(response);
-                        callback(null, response);
-                    });
-                },
-                function (data, callback) {
-                    TASKS[2].reqstart = (+new Date());
-                    call(TASKS[2], function(response) {
-                        console.log(TASKS[2].responseKey, response.body);
-                        getResponse(response);
-                        callback(null, response);
-                    });
-                },
-
-                function (data, callback) {
-                    console.log('process done');
-                    callback(null, 'done');
-                }
-            ], function() {
-                console.log('waterfall done');
-                checkResponses(opts);
-            });
         }
     }
 
@@ -350,7 +287,9 @@ apirequests = function apirequests(opts) {
          */
         run: function(rules) {
             if (!rules) {
-                console.log(logSymbols.error, colors.red('No rules!'), 'Rules are needed to build and run tasks.');
+                console.log(logSymbols.error,
+                            colors.red('No rules!'),
+                            'Rules are needed to build and run tasks.');
             } else if (typeof rules === 'string') {
                 var filename = rules;
                 fs.stat(filename, function(err) {
@@ -361,21 +300,31 @@ apirequests = function apirequests(opts) {
                             buildTasks(rules);
                             startTime = (+new Date());
                             if (opts.output === 'print') {
-                                console.log('Find', rules.length, 'in', filename, 'start with', TASKS.length, 'Tasks\n');
+                                console.log('Find',
+                                            rules.length,
+                                            'in',
+                                            filename,
+                                            'start with',
+                                            TASKS.length,
+                                            'Tasks\n');
                             }
                             start();
                         });
                     } else if(err.code === 'ENOENT') {
-                        console.log(logSymbols.error, colors.red('File ' + filename + ' does not exists!'));
+                        console.log(logSymbols.error,
+                                    colors.red(filename + " doesn't exists!"));
                     } else {
-                        console.log(logSymbols.error, colors.red(err.code));
+                        console.log(logSymbols.error,
+                                    colors.red(err.code));
                     }
                 });
             } else {
                 buildTasks(rules);
                 startTime = (+new Date());
                 if (opts.output === 'print') {
-                    console.log('Start with', TASKS.length, 'Tasks\n');
+                    console.log('Start with',
+                                TASKS.length,
+                                'Tasks\n');
                 }
                 start();
             }
