@@ -42,7 +42,7 @@ MongoClient.connect('mongodb://127.0.0.1:27017/apirequests', function(err, db) {
 ```
 
 Options are optional, per default the result be print out.
-It's also possible to define `output`, `outputfile` and `outputpath` to save the html file.  
+It's also possible to define `output`, `outputfile` and `outputpath` to save a html file.  
 
 ```javascript
 var apirequests = require('apirequests');
@@ -51,7 +51,7 @@ var apitest = apirequests({output: 'html'});
 apitest.run('rules.json');
 ```
 
-When the requests should run in a `loop` set it with a timeout value.
+When the requests should run in a `loop`, it can be set with a timeout value.
 
 ```javascript
 require('apirequests')({loop: 2000}).run('rules.json');
