@@ -22,7 +22,6 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "async": "^2.0.0-rc.5",
     "cli-spinner": "^0.2.5",
     "colors": "^1.0.3",
     "log-symbols": "^1.0.2",
