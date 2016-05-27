@@ -71,7 +71,9 @@ module.exports = function apirequests (opts) {
             if (opts.output === "print") {
                 _output.printResults(results, opts, startTime);
             } else if (opts.output === "html") {
-                _output.writeResults(results, opts, startTime);
+                _output.writeHtml(results, opts, startTime);
+            } else if (opts.output === "xml") {
+                _output.writeXml(results, opts, startTime);
             } else if (opts.output === "db") {
                 _output.storeResults(results, opts, startTime);
             }
