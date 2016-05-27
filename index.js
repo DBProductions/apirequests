@@ -24,9 +24,8 @@ module.exports = function apirequests (opts) {
     opts.output = opts.output || "print";
     opts.mode = opts.mode || "all";
     opts.onlyFailures = opts.onlyFailures || null;
-    opts.outputfile = opts.outputfile || "reports.html";
-    opts.outputpath = opts.outputpath || "./";
-    opts.outputpath = opts.outputpath || "./";
+    opts.outputFile = opts.outputFile || "reports.html";
+    opts.outputPath = opts.outputPath || "./";
     opts.connectionurl = opts.connectionurl || null;
     opts.collection = opts.collection || "results";
 
@@ -70,7 +69,7 @@ module.exports = function apirequests (opts) {
             var results = fillResults(TASKS, RESPONSES);
             results = setOutputs(results);
             if (opts.output === "print") {
-                _output.printResults(results, startTime);
+                _output.printResults(results, opts, startTime);
             } else if (opts.output === "html") {
                 _output.writeResults(results, opts, startTime);
             } else if (opts.output === "db") {

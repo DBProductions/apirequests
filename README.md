@@ -41,24 +41,34 @@ MongoClient.connect('mongodb://127.0.0.1:27017/apirequests', function(err, db) {
 });
 ```
 
-Options are optional, per default the result be print out.
-It's also possible to define `output`, `outputfile` and `outputpath` to save a html file.  
+#### Options
+Options are optional.
+
+##### output
+The default value is `print`, other possible values are `html` and `db`.
+
+##### printOnlyFailure
+When this flag is `true` only the failures are printed out.  
+
+##### outputFile and outputPath  
+The default values are `reports.html` and `./`, will be used when output is set to html.  
 
 ```javascript
 var apirequests = require('apirequests');
 
-var apitest = apirequests({output: 'html'});
+var apitest = apirequests({output: 'html', outputFile: 'report.html'});
 apitest.run('rules.json');
 ```
 
-When the requests should run in a `loop`, it can be set with a timeout value.
+##### loop
+When the requests should run in a `loop` with a timeout value.
 
 ```javascript
 require('apirequests')({loop: 2000}).run('rules.json');
 ```
 
-To save the results in a MongoDB, define `connectionurl` and `collection`.  
-The default values are `mongodb://127.0.0.1:27017/apirequests` and `results`.
+##### connectionurl and collection  
+The default values are `mongodb://127.0.0.1:27017/apirequests` and `results`, will be used when output is set to db.  
 
 ```javascript
 var apirequests = require('./index');
