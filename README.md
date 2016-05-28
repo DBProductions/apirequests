@@ -95,7 +95,7 @@ MongoClient.connect(connectionUrl, function(err, db) {
 A rule take basically a `uri` to run, a `method` is optional, GET is the default value.  
 When a request should wait or be the last call a `delay` can get added.  
 To send headers define them as `headers` object and define a `form` object inside of the rule to send data when needed.  
-To test the response, define inside of the rule a response object. The response object can have a `statuscode`, `data`, `regex` and a `headers` object, this object can check `contenttype`, `contentlength`, `cachecontrol` and `server`.
+To test the response, define inside of the rule a response object. The response object can have a `statuscode`, `host`, `time`, `data`, `regex` and a `headers` object, this object can check `contenttype`, `contentlength`, `cachecontrol` and `server`.
 
 Some examples how to define rules.
 

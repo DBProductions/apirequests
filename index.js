@@ -105,6 +105,8 @@ module.exports = function apirequests (opts) {
         for (var i = 0; i < tasks.length; i++) {
             for (var j = 0; j < responses.length; j++) {
                 if (tasks[i].num === responses[j].num) {
+                    let requestTime = Math.round((responses[j].reqend - tasks[i].reqstart));
+                    responses[j].requestTime = requestTime;
                     results.push({task: tasks[i], result: responses[j]});
                     responses.splice(j, 1);
                 }
@@ -133,6 +135,12 @@ module.exports = function apirequests (opts) {
                 if (results[i].task.response.host) {
                     if (results[i].task.response.host !== results[i].result.request.host) {
                         results[i].output.msg.push(results[i].task.response.host + msgPart + results[i].result.request.host);
+                    }
+                }
+                // Time
+                if (results[i].task.response.time) {
+                    if (results[i].task.response.time < results[i].result.requestTime) {
+                        results[i].output.msg.push(results[i].result.requestTime + " greater than " + results[i].task.response.time);
                     }
                 }
                 // Headers
