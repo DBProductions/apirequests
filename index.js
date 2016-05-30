@@ -26,7 +26,7 @@ module.exports = function apirequests (opts) {
     opts.onlyFailures = opts.onlyFailures || null;
     opts.outputFile = opts.outputFile || "reports.html";
     opts.outputPath = opts.outputPath || "./";
-    opts.connectionurl = opts.connectionurl || null;
+    opts.connectionurl = opts.connectionurl || "mongodb://127.0.0.1:27017/apirequests";
     opts.collection = opts.collection || "results";
 
     /**
@@ -53,45 +53,13 @@ module.exports = function apirequests (opts) {
     }
 
     /**
-     * Collect the responses
-     */
-    function getResponse (response) {
-        RESPONSES.push(response);
-    }
-
-    /**
      * Check the responses
      */
     function checkResponses (opts) {
         if (TASKS.length === RESPONSES.length) {
-            _spinner.stop();
-            console.log("\n");
-            var results = fillResults(TASKS, RESPONSES);
+            let results = fillResults(TASKS, RESPONSES);
             results = setOutputs(results);
-            if (opts.output === "print") {
-                _output.printResults(results, opts, startTime);
-            } else if (opts.output === "html") {
-                _output.writeHtml(results, opts, startTime);
-            } else if (opts.output === "xml") {
-                _output.writeXml(results, opts, startTime);
-            } else if (opts.output === "db") {
-                _output.storeResults(results, opts, startTime);
-            }
-            if (opts.loop) {
-                loopCount += 1;
-                startTime = (+new Date());
-                if (opts.output === "print") {
-                    console.log("Start again with", tasks.length, "Tasks", "made " + loopCount + " runs\n");
-                }
-                RESPONSES = [];
-                TASKS.map(function(currentValue) {
-                    currentValue.reqstart = (+new Date());
-                    call(currentValue, function(response) {
-                        getResponse(response);
-                    });
-                });
-                checkResponses(opts);
-            }
+            handleOutputs(results, opts, startTime);
         } else {
             setTimeout(() => { checkResponses(opts); }, 1);
         }
@@ -192,6 +160,26 @@ module.exports = function apirequests (opts) {
     }
 
     /**
+     * handle different outputs
+     */
+    function handleOutputs (results, opts, startTime) {
+        if (opts.output === "print") {
+            _spinner.stop();
+            console.log("\n");
+            _output.printResults(results, opts, startTime);
+        } else if (opts.output === "html") {
+            _output.writeHtml(results, opts, startTime);
+        } else if (opts.output === "xml") {
+            _output.writeXml(results, opts, startTime);
+        } else if (opts.output === "db") {
+            _output.storeResults(results, opts, startTime);
+        }
+        if (opts.loop) {
+            setTimeout(() => { startAgain(opts); }, opts.loop);
+        }
+    }
+
+    /**
      * Build the tasks, make some checks and skip wrong data
      */
     function buildTasks (rules) {
@@ -253,6 +241,32 @@ module.exports = function apirequests (opts) {
             }
         });
         checkResponses(opts);
+    }
+
+    /**
+     * start the calls and check the responses
+     */
+    function startAgain () {
+        loopCount += 1;
+        startTime = (+new Date());
+        if (opts.output === "print") {
+            console.log("Start again with", TASKS.length, "Tasks", "made " + loopCount + " runs\n");
+        }
+        RESPONSES = [];
+        TASKS.map(function(currentValue) {
+            currentValue.reqstart = (+new Date());
+            call(currentValue, function(response) {
+                getResponse(response);
+            });
+        });
+        checkResponses(opts);
+    }
+
+    /**
+     * Collect the responses
+     */
+    function getResponse (response) {
+        RESPONSES.push(response);
     }
 
     return {
