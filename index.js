@@ -10,14 +10,11 @@ let Spinner = require("cli-spinner").Spinner;
 let _spinner = new Spinner("Requesting %s");
 let fs = require("fs");
 let _output = require("./lib/output");
-let apirequests;
 let startTime = 0;
 let loopCount = 1;
 let TASKS = [];
 let RESPONSES = [];
 let methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"];
-
-_spinner.setSpinnerString("|/-\\");
 
 module.exports = function apirequests (opts) {
     if (!opts) { opts = {}; }
@@ -218,7 +215,12 @@ module.exports = function apirequests (opts) {
             if (options.method && options.uri) {
                 TASKS.push(options);
             } else {
-                console.log(colors.red("* SKIP") + " - " + rules[i].method + " " + rules[i].uri);
+                if (opts.output === "print") {
+                    console.log(logSymbols.error,
+                                colors.red("SKIP"),
+                                rules[i].method,
+                                rules[i].uri);
+                }
             }
         }
     }
@@ -231,12 +233,12 @@ module.exports = function apirequests (opts) {
             if (currentValue.delay) {
                 setTimeout(() => {
                     call(currentValue, (response) => {
-                        getResponse(response);
+                        collectResponse(response);
                     });
                 }, currentValue.delay);
             } else {
                 call(currentValue, (response) => {
-                    getResponse(response);
+                    collectResponse(response);
                 });
             }
         });
@@ -256,7 +258,7 @@ module.exports = function apirequests (opts) {
         TASKS.map(function(currentValue) {
             currentValue.reqstart = (+new Date());
             call(currentValue, function(response) {
-                getResponse(response);
+                collectResponse(response);
             });
         });
         checkResponses(opts);
@@ -265,7 +267,7 @@ module.exports = function apirequests (opts) {
     /**
      * Collect the responses
      */
-    function getResponse (response) {
+    function collectResponse (response) {
         RESPONSES.push(response);
     }
 
@@ -295,6 +297,8 @@ module.exports = function apirequests (opts) {
                                             "start with",
                                             TASKS.length,
                                             "Tasks\n");
+                                _spinner.setSpinnerString("|/-\\");
+                                _spinner.start();
                             }
                             start();
                         });
@@ -313,6 +317,7 @@ module.exports = function apirequests (opts) {
                     console.log("Start with",
                                 TASKS.length,
                                 "Tasks");
+                    _spinner.setSpinnerString("|/-\\");
                     _spinner.start();
                 }
                 start();
