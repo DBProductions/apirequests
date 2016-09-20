@@ -16,7 +16,7 @@ let TASKS = [];
 let RESPONSES = [];
 let methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"];
 
-module.exports = function apirequests (opts) {
+module.exports = (opts) => {
     if (!opts) { opts = {}; }
     opts.output = opts.output || "print";
     opts.mode = opts.mode || "all";
@@ -29,7 +29,7 @@ module.exports = function apirequests (opts) {
     /**
      * Check uri
      */
-    function checkUri (s) {
+    let checkUri = (s) => {
         var r = /(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?/;
         return r.test(s);
     }
@@ -37,7 +37,7 @@ module.exports = function apirequests (opts) {
     /**
      * Do the request
      */
-    function call (opts, cb) {
+    let call = (opts, cb) => {
         request(opts, (err, res, body) => {
             if (err) {
                 cb(err);
@@ -52,7 +52,7 @@ module.exports = function apirequests (opts) {
     /**
      * Check the responses
      */
-    function checkResponses (opts) {
+    let checkResponses = (opts) => {
         if (TASKS.length === RESPONSES.length) {
             let results = fillResults(TASKS, RESPONSES);
             results = setOutputs(results);
@@ -65,7 +65,7 @@ module.exports = function apirequests (opts) {
     /**
      * Fill results with matching tasks and responses
      */
-    function fillResults (tasks, responses) {
+    let fillResults = (tasks, responses) => {
         var results = [];
         for (var i = 0; i < tasks.length; i++) {
             for (var j = 0; j < responses.length; j++) {
@@ -83,7 +83,7 @@ module.exports = function apirequests (opts) {
     /**
      * Set the output property of the results object
      */
-    function setOutputs (results) {
+    let setOutputs = (results) => {
         let msgPart = " is not equal ";
         for (var i = 0; i < results.length; i++) {
             results[i].output = {};
@@ -143,8 +143,18 @@ module.exports = function apirequests (opts) {
                             results[i].output.msg.push(results[i].result.body + " not includes " + results[i].task.response.data);
                         }
                     } else {
-                        if (results[i].task.response.data !== results[i].result.body) {
-                            results[i].output.msg.push(results[i].task.response.data + msgPart + results[i].result.body);
+                        if("object" === typeof results[i].task.response.data) {
+                            try {
+                                if (JSON.stringify(results[i].task.response.data) !== results[i].result.body) {
+                                    results[i].output.msg.push(JSON.stringify(results[i].task.response.data) + msgPart + results[i].result.body);
+                                }
+                            } catch (e) {
+                                results[i].output.msg.push("result body isn't right json");
+                            }
+                        } else {
+                            if (results[i].task.response.data !== results[i].result.body) {
+                                results[i].output.msg.push(results[i].task.response.data + msgPart + results[i].result.body);
+                            }
                         }
                     }
                 }
@@ -159,7 +169,7 @@ module.exports = function apirequests (opts) {
     /**
      * handle different outputs
      */
-    function handleOutputs (results, opts, startTime) {
+    let handleOutputs = (results, opts, startTime) => {
         if (opts.output === "print") {
             _spinner.stop();
             console.log("\n");
@@ -179,7 +189,7 @@ module.exports = function apirequests (opts) {
     /**
      * Build the tasks, make some checks and skip wrong data
      */
-    function buildTasks (rules) {
+    let buildTasks = (rules) => {
         var i;
         var options;
         var rulesLength = rules.length;
@@ -227,7 +237,7 @@ module.exports = function apirequests (opts) {
     /**
      * start the calls and check the responses
      */
-    function start () {
+    let start = () => {
         TASKS.map((currentValue) => {
             currentValue.reqstart = (+new Date());
             if (currentValue.delay) {
@@ -248,14 +258,14 @@ module.exports = function apirequests (opts) {
     /**
      * start the calls and check the responses
      */
-    function startAgain () {
+    let startAgain = () => {
         loopCount += 1;
         startTime = (+new Date());
         if (opts.output === "print") {
             console.log("Start again with", TASKS.length, "Tasks", "made " + loopCount + " runs\n");
         }
         RESPONSES = [];
-        TASKS.map(function(currentValue) {
+        TASKS.map((currentValue) => {
             currentValue.reqstart = (+new Date());
             call(currentValue, function(response) {
                 collectResponse(response);
@@ -267,7 +277,7 @@ module.exports = function apirequests (opts) {
     /**
      * Collect the responses
      */
-    function collectResponse (response) {
+    let collectResponse = (response) => {
         RESPONSES.push(response);
     }
 
@@ -276,7 +286,7 @@ module.exports = function apirequests (opts) {
          * checks the rules then build the tasks and start to work
          */
         run: function (rules) {
-            if (!rules) {
+            if (!rules || rules.length === 0) {
                 console.log(logSymbols.error,
                             colors.red("No rules!"),
                             "Rules are needed to build and run tasks.");
