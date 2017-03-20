@@ -45,7 +45,7 @@ MongoClient.connect('mongodb://127.0.0.1:27017/apirequests', function(err, db) {
 Options are optional.
 
 ##### output
-The default value is `print`, other possible values are `html` and `db`.
+The default value is `print`, other possible values are `html`, `xml`, `db` and `ci`.
 
 ##### printOnlyFailure
 When this flag is `true` only the failures are printed out.  

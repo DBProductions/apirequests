@@ -38,14 +38,16 @@ module.exports = (opts) => {
      * Do the request
      */
     let call = (opts, cb) => {
-        request(opts, (err, res, body) => {
-            if (err) {
-                cb(err);
-            } else {
-                res.num = opts.num;
-                res.reqend = (+new Date());
-                cb(res, body);
-            }
+        return new Promise((resolve, reject) => {
+            request(opts, (err, res, body) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    res.num = opts.num;
+                    res.reqend = (+new Date());
+                    resolve(res, body);
+                }
+            });
         });
     }
 
@@ -180,6 +182,9 @@ module.exports = (opts) => {
             _output.writeXml(results, opts, startTime);
         } else if (opts.output === "db") {
             _output.storeResults(results, opts, startTime);
+        } else if (opts.output === "ci") {
+            _output.writeXml(results, opts, startTime);
+            _output.printResults(results, opts, startTime);
         }
         if (opts.loop) {
             setTimeout(() => { startAgain(opts); }, opts.loop);
@@ -242,13 +247,17 @@ module.exports = (opts) => {
             currentValue.reqstart = (+new Date());
             if (currentValue.delay) {
                 setTimeout(() => {
-                    call(currentValue, (response) => {
+                    call(currentValue).then(response => {
                         collectResponse(response);
+                    }).catch(err => {
+                        console.log(err);
                     });
                 }, currentValue.delay);
             } else {
-                call(currentValue, (response) => {
+                call(currentValue).then(response => {
                     collectResponse(response);
+                }).catch(err => {
+                    console.log(err);
                 });
             }
         });
@@ -267,8 +276,10 @@ module.exports = (opts) => {
         RESPONSES = [];
         TASKS.map((currentValue) => {
             currentValue.reqstart = (+new Date());
-            call(currentValue, function(response) {
+            call(currentValue).then(response => {
                 collectResponse(response);
+            }).catch(err => {
+                console.log(err);
             });
         });
         checkResponses(opts);
