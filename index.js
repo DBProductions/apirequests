@@ -183,8 +183,11 @@ module.exports = (opts) => {
         } else if (opts.output === "db") {
             _output.storeResults(results, opts, startTime);
         } else if (opts.output === "ci") {
-            _output.writeXml(results, opts, startTime);
+            opts.loop = true;
             _output.printResults(results, opts, startTime);
+            opts.loop = false;
+            _output.writeXml(results, opts, startTime);
+
         }
         if (opts.loop) {
             setTimeout(() => { startAgain(opts); }, opts.loop);
