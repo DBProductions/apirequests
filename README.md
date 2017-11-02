@@ -8,33 +8,33 @@ Can test several backends if the resources are response like expected.
 ## How to use
 
 ```javascript
-var apirequests = require('apirequests');
+const apirequests = require('apirequests');
 
-var rules = [...];
+let rules = [...];
 
-var apitest = apirequests();
+let apitest = apirequests();
 apitest.run(rules);
 ```
 
 Use rules from a JSON file.
 
 ```javascript
-var apirequests = require('apirequests');
+let apirequests = require('apirequests');
 
-var apitest = apirequests();
+let apitest = apirequests();
 apitest.run('rules.json');
 ```
 
 Use a store engine, like MongoDB, for storing the rules.
 
 ```javascript
-var apirequests = require('./index');
-var MongoClient = require('mongodb').MongoClient;
+const apirequests = require('apirequests');
+const MongoClient = require('mongodb').MongoClient;
 
-MongoClient.connect('mongodb://127.0.0.1:27017/apirequests', function(err, db) {
+MongoClient.connect('mongodb://127.0.0.1:27017/apirequests', (err, db) => {
     if(err) throw err;
-    var apitest = apirequests();
-    db.collection('urls').find().toArray(function(err, results) {
+    let apitest = apirequests();
+    db.collection('urls').find().toArray((err, results) => {
         apitest.run(results);
         db.close();
     });
@@ -54,9 +54,9 @@ When this flag is `true` only the failures are printed out.
 The default values are `reports.html` and `./`, will be used when output is set to html.  
 
 ```javascript
-var apirequests = require('apirequests');
+const apirequests = require('apirequests');
 
-var apitest = apirequests({output: 'html', outputFile: 'report.html'});
+let apitest = apirequests({output: 'html', outputFile: 'report.html'});
 apitest.run('rules.json');
 ```
 
@@ -71,18 +71,18 @@ require('apirequests')({loop: 2000}).run('rules.json');
 The default values are `mongodb://127.0.0.1:27017/apirequests` and `results`, will be used when output is set to db.  
 
 ```javascript
-var apirequests = require('./index');
-var MongoClient = require('mongodb').MongoClient;
+const apirequests = require('apirequests');
+const MongoClient = require('mongodb').MongoClient;
 
-var connectionUrl = 'mongodb://127.0.0.1:27017/requests';
-var opts = {output: 'db', connectionurl: connectionUrl};
+const connectionUrl = 'mongodb://127.0.0.1:27017/requests';
+const opts = {output: 'db', connectionurl: connectionUrl};
 
 MongoClient.connect(connectionUrl, function(err, db) {
     if(err) throw err;
 
-    var apitest = apirequests(opts);
+    let apitest = apirequests(opts);
 
-    db.collection('urls').find().toArray(function(err, results) {
+    db.collection('urls').find().toArray((err, results) => {
         if(err) throw err;
         apitest.run(results);
         db.close();
@@ -154,6 +154,22 @@ Some examples how to define rules.
     }
 }]
 ```
+
+To send JSON data it's needed to define a `body` and send the specific header.
+```
+{
+    ...
+    body: JSON.stringify({apirequest: 'post'}),
+    headers: {
+        'Content-Type': 'application/json'
+    },
+    response: {
+        statuscode: 200,
+        data: {apirequest: 'post'}
+    }
+}
+```
+
 
 ## Results
 
