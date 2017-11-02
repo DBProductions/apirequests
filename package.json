@@ -22,11 +22,11 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "cli-spinner": "^0.2.5",
-    "colors": "^1.0.3",
-    "log-symbols": "^1.0.2",
-    "mongodb": "^2.0.27",
-    "request": "^2.48.0",
-    "xml-writer": "^1.6.0"
+    "cli-spinner": "0.2.7",
+    "colors": "1.1.2",
+    "log-symbols": "2.1.0",
+    "mongodb": "2.2.33",
+    "request": "2.83.0",
+    "xml-writer": "1.7.0"
   }
 }

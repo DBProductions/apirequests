@@ -3,12 +3,13 @@
  * Take rules as JSON and execute requests.
  */
 "use strict";
-let request = require("request");
+let fs = require("fs");
 let colors = require("colors");
+let request = require("request");
 let logSymbols = require("log-symbols");
 let Spinner = require("cli-spinner").Spinner;
 let _spinner = new Spinner("Requesting %s");
-let fs = require("fs");
+let helper = require("./lib/helper");
 let _output = require("./lib/output");
 let startTime = 0;
 let loopCount = 1;
@@ -25,14 +26,6 @@ module.exports = (opts) => {
     opts.outputPath = opts.outputPath || "./";
     opts.connectionurl = opts.connectionurl || "mongodb://127.0.0.1:27017/apirequests";
     opts.collection = opts.collection || "results";
-
-    /**
-     * Check uri
-     */
-    let checkUri = (s) => {
-        var r = /(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?/;
-        return r.test(s);
-    }
 
     /**
      * Do the request
@@ -68,9 +61,9 @@ module.exports = (opts) => {
      * Fill results with matching tasks and responses
      */
     let fillResults = (tasks, responses) => {
-        var results = [];
-        for (var i = 0; i < tasks.length; i++) {
-            for (var j = 0; j < responses.length; j++) {
+        let results = [];
+        for (let i = 0; i < tasks.length; i++) {
+            for (let j = 0; j < responses.length; j++) {
                 if (tasks[i].num === responses[j].num) {
                     let requestTime = Math.round((responses[j].reqend - tasks[i].reqstart));
                     responses[j].requestTime = requestTime;
@@ -87,7 +80,7 @@ module.exports = (opts) => {
      */
     let setOutputs = (results) => {
         let msgPart = " is not equal ";
-        for (var i = 0; i < results.length; i++) {
+        for (let i = 0; i < results.length; i++) {
             results[i].output = {};
             results[i].output.msg = [];
             if (results[i].task.response) {
@@ -187,20 +180,18 @@ module.exports = (opts) => {
             _output.printResults(results, opts, startTime);
             opts.loop = false;
             _output.writeXml(results, opts, startTime);
-
         }
         if (opts.loop) {
             setTimeout(() => { startAgain(opts); }, opts.loop);
         }
     }
-
     /**
      * Build the tasks, make some checks and skip wrong data
      */
     let buildTasks = (rules) => {
-        var i;
-        var options;
-        var rulesLength = rules.length;
+        let i;
+        let options;
+        let rulesLength = rules.length;
         for (i = 0; i < rulesLength; i++) {
             options = {};
             options.num = i + 1;
@@ -214,7 +205,7 @@ module.exports = (opts) => {
             }
             if (rules[i].uri) {
                 options.uri = rules[i].uri;
-                if (!checkUri(options.uri)) {
+                if (!helper.checkUri(options.uri)) {
                     options.uri = false;
                 }
             }
@@ -266,7 +257,6 @@ module.exports = (opts) => {
         });
         checkResponses(opts);
     }
-
     /**
      * start the calls and check the responses
      */
@@ -305,7 +295,7 @@ module.exports = (opts) => {
                             colors.red("No rules!"),
                             "Rules are needed to build and run tasks.");
             } else if (typeof rules === "string") {
-                var filename = rules;
+                let filename = rules;
                 fs.stat(filename, (err) => {
                     if (err === null) {
                         fs.readFile(filename, (err, data) => {
