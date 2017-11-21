@@ -42,16 +42,22 @@ MongoClient.connect('mongodb://127.0.0.1:27017/apirequests', (err, db) => {
 ```
 
 #### Options
-Options are optional.
+All options are optional or have set default values.
 
 ##### output
-The default value is `print`, other possible values are `html`, `xml`, `db` and `ci`.
+The default value is `print`, other possible values are `html`, `xml`, `db` and `ci`.  
+
+* html - writes a HTML file (reports.html)  
+* xml - writes a XML file (reports.xml)  
+* db - writes to a MongoDB collection (results)  
+* ci - print the output and writes a XML file
 
 ##### printOnlyFailure
-When this flag is `true` only the failures are printed out.  
+When this flag is set `true` only the failures are printed out.  
 
 ##### outputFile and outputPath  
 The default values are `reports.html` and `./`, will be used when output is set to html.  
+When `output` is set to `xml` or to `ci` then the outputFile will be named `reports.xml`.  
 
 ```javascript
 const apirequests = require('apirequests');
@@ -93,8 +99,8 @@ MongoClient.connect(connectionUrl, function(err, db) {
 ## How to define rules
 
 A rule takes basically an `uri` to run, the `method` is optional, GET is the default value.  
-When a request should wait `delay` can be added. To send custom headers use a `headers` object and define a `form` object inside of the rule to send data.  
-To test the response, define inside of the rule a response object. The response object can have a `statuscode`, `host`, `time`, `data`, `regex` and a `headers` object, this object can check `contenttype`, `contentlength`, `cachecontrol` and `server`.
+To send custom headers use a `headers` object and define a `form` object inside of the rule to send data.  
+To test the response, define inside of the rule a response object. The response object can have a `statuscode`, `host`, `time`, `data`, `regex` and a `headers` object, this headers object can check `contenttype`, `contentlength`, `cachecontrol` and `server`.
 
 Some examples how to define rules.
 
@@ -143,7 +149,6 @@ Some examples how to define rules.
 {
     method: 'delete',
     uri: 'http://webservice-point.appspot.com/test',
-    delay: 3000,
     response: {
         statuscode: 404,
         headers: {
@@ -155,8 +160,23 @@ Some examples how to define rules.
 }]
 ```
 
-To send JSON data it's needed to define a `body` and send the specific header.
+Response validation supports `joi` when `schema` flag is set.
+```javascript
+{
+    ...
+    response: {
+        statuscode: 200,
+        data: Joi.object()
+        .keys({
+            response: Joi.string().alphanum().min(3).max(30).required()
+        }),
+        schema: true
+    }
+}
 ```
+
+To send JSON data it's needed to define a `body` and send the specific header.
+```javascript
 {
     ...
     body: JSON.stringify({apirequest: 'post'}),
@@ -170,6 +190,62 @@ To send JSON data it's needed to define a `body` and send the specific header.
 }
 ```
 
+It's possible to define groups to have depending requests or test CRUD functionality. The group requests are executed syncronous in order. `key` defines the field to find in the response like the id for the created entry to use this as reference for following calls.  
+```javascript
+{
+    name: 'Group Test',
+    key: '_id',
+    group: [
+        {            
+            method: 'post',
+            uri: 'http://localhost:3000/users',            
+            body: JSON.stringify({email: 'created@apirequests.com'}),
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            response: {
+                statuscode: 201
+            }
+        },
+        {
+            method: 'get',
+            uri: 'http://localhost:3000/users',
+            response: {
+                statuscode: 200,
+                data: '"email":"created@apirequests.com"',
+                regex: true
+            }
+        },
+        {
+            method: 'put',
+            uri: 'http://localhost:3000/users',
+            body: JSON.stringify({email: 'upgrated@apirequests.com'}),
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            response: {
+                statuscode: 200
+            }
+        },
+        {
+            method: 'get',
+            uri: 'http://localhost:3000/users',
+            response: {
+                statuscode: 200,
+                data: '"email":"upgrated@apirequests.com"',
+                regex: true
+            }
+        },
+        {
+            method: 'delete',
+            uri: 'http://localhost:3000/users',
+            response: {
+                statuscode: 200
+            }
+        }
+    ]
+}
+```
 
 ## Results
 

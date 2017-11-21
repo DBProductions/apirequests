@@ -2,58 +2,82 @@
  * APIrequests
  * Take rules as JSON and execute requests.
  */
-'use strict';
 const fs = require('fs');
 const colors = require('colors');
 const logSymbols = require('log-symbols');
+const syncRequest = require('sync-request');
 const Spinner = require('cli-spinner').Spinner;
 const _spinner = new Spinner('Requesting %s');
 const helper = require('./lib/helper');
 const _output = require('./lib/output');
 
-let startTime = 0;
-let loopCount = 1;
-let RESPONSES = [];
+let LOOPCOUNT = 1;
 
-module.exports = (opts) => {
-    if (!opts) { opts = {}; }
+module.exports = (opts = {}) => {
+    // set default values
     opts.output = opts.output || 'print';
-    opts.mode = opts.mode || 'all';
     opts.onlyFailures = opts.onlyFailures || null;
     opts.outputFile = opts.outputFile || 'reports.html';
     opts.outputPath = opts.outputPath || './';
-    opts.connectionurl = opts.connectionurl || 'mongodb://127.0.0.1:27017/apirequests';
+    opts.connectionurl = opts.connectionurl || 'mongodb://127.0.0.1:27017';
+    opts.database = opts.database || 'apirequests';
     opts.collection = opts.collection || 'results';
+    if (opts.output === 'xml' || opts.output === 'ci') {
+        if (opts.outputFile === 'reports.html') {
+            opts.outputFile = 'reports.xml';
+        }
+    }
 
     /**
-     * Check the responses
+     * get results for a group
      */
-    let checkResponses = (opts, tasks) => {
-        if (tasks.length === RESPONSES.length) {
-            let results = fillResults(tasks, RESPONSES);
-            results = helper.setOutputs(results);
-            handleOutputs(tasks, results, opts, startTime);
-        } else {
-            setTimeout(() => { checkResponses(opts, tasks); }, 1);
-        }
-    }
-    /**
-     * Fill results with matching tasks and responses
-     */
-    let fillResults = (tasks, responses) => {
-        let results = [];
-        for (let i = 0; i < tasks.length; i++) {
-            for (let j = 0; j < responses.length; j++) {
-                if (tasks[i].num === responses[j].num) {
-                    let requestTime = Math.round((responses[j].reqend - tasks[i].reqstart));
-                    responses[j].requestTime = requestTime;
-                    results.push({task: tasks[i], result: responses[j]});
-                    responses.splice(j, 1);
+    const getGroupResults = (tasks) => {
+        let groupResults = [];
+        for (let group in tasks.groups) {
+            let results = {tasks: []};
+            for (let task in tasks.groups[group].tasks) {
+                results.name = tasks.groups[group].name;
+                tasks.groups[group].tasks[task].reqstart = Date.now();
+                let response = syncRequest(tasks.groups[group].tasks[task].method,
+                    tasks.groups[group].tasks[task].uri,
+                    tasks.groups[group].tasks[task]);
+
+                if (tasks.groups[group].tasks[Number(task) + 1]) {
+                    let data;
+                    try {
+                        data = JSON.parse(response.body);
+                    } catch (e) {
+                        console.log(logSymbols.error,
+                            colors.red('No JSON response!'),
+                            response.body);
+                    }
+                    if (data) {
+                        if (tasks.groups[group].key && data[tasks.groups[group].key]) {
+                            tasks.groups[group].key = data[tasks.groups[group].key];
+                        }
+                        if (tasks.groups[group].tasks[Number(task) + 1].uri) {
+                            if (tasks.groups[group].key) {
+                                let keyLength = tasks.groups[group].key.toString().length;
+                                if (tasks.groups[group].key.toString() !== tasks.groups[group].tasks[Number(task) + 1].uri.slice(keyLength * -1)) {
+                                    if (tasks.groups[group].tasks[Number(task) + 1].uri.slice(-1) !== '/') {
+                                        tasks.groups[group].tasks[Number(task) + 1].uri += `/${tasks.groups[group].key}`;
+                                    } else {
+                                        tasks.groups[group].tasks[Number(task) + 1].uri += tasks.groups[group].key;
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
+                response.reqend = Date.now();
+                response.requestTime = Math.round((response.reqend - tasks.groups[group].tasks[task].reqstart));
+                results.tasks.push({task: tasks.groups[group].tasks[task], result: response});
             }
+            groupResults.push(results);
         }
-        return results;
-    }
+        return groupResults;
+    };
+
     /**
      * handle different outputs
      */
@@ -77,60 +101,66 @@ module.exports = (opts) => {
         if (opts.loop) {
             setTimeout(() => { startAgain(opts, tasks); }, opts.loop);
         }
-    }
+    };
+
     /**
      * start the calls and check the responses
      */
-    let start = (tasks) => {
-        tasks.map((currentValue) => {
+    let start = async (tasks) => {
+        let startTime = Date.now();
+        let promRequests = [];
+        tasks.singles.map((currentValue) => {
             currentValue.reqstart = Date.now();
-            if (currentValue.delay) {
-                setTimeout(() => {
-                    helper.caller(currentValue).then(response => {
-                        collectResponse(response);
-                    }).catch(err => {
-                        console.log(err);
-                    });
-                }, currentValue.delay);
-            } else {
-                helper.caller(currentValue).then(response => {
-                    collectResponse(response);
-                }).catch(err => {
-                    console.log(err);
-                });
-            }
+            promRequests.push(helper.caller(currentValue));
         });
-        checkResponses(opts, tasks);
-    }
+        Promise.all(promRequests).then(values => {
+            let results = helper.fillResults(tasks, values);
+            results = helper.setOutputs(results);
+            // do group requests
+            let groupResults = getGroupResults(tasks);
+            groupResults = helper.setGroupOutputs(groupResults);
+
+            let allResults = {
+                single: results,
+                group: groupResults
+            };
+            handleOutputs(tasks, allResults, opts, startTime);
+        }).catch(err => {
+            console.log(err);
+        });
+    };
+
     /**
-     * start the calls and check the responses
+     * start the calls and check the responses again
      */
     let startAgain = (opts, tasks) => {
-        loopCount += 1;
-        startTime = Date.now();
+        LOOPCOUNT += 1;
+        let startTime = Date.now();
         if (opts.output === 'print') {
             console.log('Start again with',
-                        tasks.length,
-                        'Tasks',
-                        'made ' + loopCount + ' runs');
+                tasks.singles.length,
+                'Tasks',
+                'made ' + LOOPCOUNT + ' runs');
         }
-        RESPONSES = [];
-        tasks.map((currentValue) => {
+        let promRequests = [];
+        tasks.singles.map((currentValue) => {
             currentValue.reqstart = Date.now();
-            helper.caller(currentValue).then(response => {
-                collectResponse(response);
-            }).catch(err => {
-                console.log(err);
-            });
+            promRequests.push(helper.caller(currentValue));
         });
-        checkResponses(opts, tasks);
-    }
-    /**
-     * Collect the responses
-     */
-    let collectResponse = (response) => {
-        RESPONSES.push(response);
-    }
+        Promise.all(promRequests).then(values => {
+            let results = helper.fillResults(tasks, values);
+            results = helper.setOutputs(results);
+            // do group requests
+            let groupResults = getGroupResults(tasks);
+            groupResults = helper.setGroupOutputs(groupResults);
+
+            let allResults = {
+                single: results,
+                group: groupResults
+            };
+            handleOutputs(tasks, allResults, opts, startTime);
+        });
+    };
 
     return {
         /**
@@ -139,8 +169,8 @@ module.exports = (opts) => {
         run: function (rules) {
             if (!rules || rules.length === 0) {
                 console.log(logSymbols.error,
-                            colors.red('No rules!'),
-                            'Rules are needed to build and run tasks.');
+                    colors.red('No rules!'),
+                    'Rules are needed to build and run tasks.');
             } else if (typeof rules === 'string') {
                 let filename = rules;
                 fs.stat(filename, (err) => {
@@ -148,40 +178,44 @@ module.exports = (opts) => {
                         fs.readFile(filename, (err, data) => {
                             if (err) { throw err; }
                             try {
-                               rules = JSON.parse(data.toString());
-                            } catch(e) {
-                               rules = [];
+                                rules = JSON.parse(data.toString());
+                                let tasks = helper.buildTasks(opts, rules);
+                                if (opts.output === 'print') {
+                                    console.log('Find',
+                                        rules.length,
+                                        'in',
+                                        filename,
+                                        'start with',
+                                        tasks.singles.length,
+                                        'Tasks and',
+                                        tasks.groups.length,
+                                        'Groups');
+                                    _spinner.setSpinnerString('|/-\\');
+                                    _spinner.start();
+                                }
+                                start(tasks);
+                            } catch (e) {
+                                console.log(logSymbols.error,
+                                    colors.red('JSON parse error!'),
+                                    `${filename} is not parsable`);
                             }
-                            let tasks = helper.buildTasks(opts, rules);
-                            startTime = Date.now();
-                            if (opts.output === 'print') {
-                                console.log('Find',
-                                            rules.length,
-                                            'in',
-                                            filename,
-                                            'start with',
-                                            tasks.length,
-                                            'Tasks\n');
-                                _spinner.setSpinnerString('|/-\\');
-                                _spinner.start();
-                            }
-                            start(tasks);
                         });
                     } else if (err.code === 'ENOENT') {
                         console.log(logSymbols.error,
-                                    colors.red(filename + " doesn't exists!"));
+                            colors.red(filename + " doesn't exists!"));
                     } else {
                         console.log(logSymbols.error,
-                                    colors.red(err.code));
+                            colors.red(err.code));
                     }
                 });
             } else {
                 let tasks = helper.buildTasks(opts, rules);
-                startTime = Date.now();
                 if (opts.output === 'print') {
                     console.log('Start with',
-                                tasks.length,
-                                'Tasks');
+                        tasks.singles.length,
+                        'Tasks and',
+                        tasks.groups.length,
+                        'Groups');
                     _spinner.setSpinnerString('|/-\\');
                     _spinner.start();
                 }
