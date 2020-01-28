@@ -10,19 +10,28 @@ Can test several backends if the resources are response like expected.
 ```javascript
 const apirequests = require('apirequests');
 
-let rules = [...];
+const rules = [...];
 
-let apitest = apirequests();
+const apitest = apirequests();
 apitest.run(rules);
 ```
 
 Use rules from a JSON file.
 
 ```javascript
-let apirequests = require('apirequests');
+const apirequests = require('apirequests');
 
-let apitest = apirequests();
+const apitest = apirequests();
 apitest.run('rules.json');
+```
+
+Use YAML file with OpenAPI-Specification, needs examples to work!
+
+```javascript
+const apirequests = require('apirequests');
+
+const apitest = apirequests();
+apitest.run('api.yaml');
 ```
 
 Use a store engine, like MongoDB, for storing the rules.

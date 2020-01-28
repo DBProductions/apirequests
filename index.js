@@ -3,6 +3,8 @@
  * Take rules as JSON and execute requests.
  */
 const fs = require('fs');
+const path = require('path');
+const yaml = require('js-yaml');
 const colors = require('colors');
 const logSymbols = require('log-symbols');
 const syncRequest = require('sync-request');
@@ -50,6 +52,14 @@ module.exports = (opts = {}) => {
                         console.log(logSymbols.error,
                             colors.red('No JSON response!'),
                             response.body);
+                        try {
+                            console.log(response.body.toString());
+                            data = JSON.parse(response.body.toString());
+                        } catch (e) {
+                            console.log(logSymbols.error,
+                                colors.red('No Buffer response!'),
+                                response.body);
+                        }
                     }
                     if (data) {
                         if (tasks.groups[group].key && data[tasks.groups[group].key]) {
@@ -162,6 +172,32 @@ module.exports = (opts = {}) => {
         });
     };
 
+    let getRefDefs = (doc, ref) => {
+        let refdef = {};
+        let refParts = ref.split('/');
+        if (refParts[1] === 'definitions') {
+            let def = doc.definitions[refParts[2]];
+            for (let property in def.properties) {
+                if (def.properties[property]['$ref']) {
+                    refdef[property] = getRefDefs(doc, def.properties[property]['$ref']);
+                } else {
+                    if (def.properties[property].type === 'array') {
+                        let arr = [];
+                        if (def.properties[property].items['$ref']) {
+                            arr.push(getRefDefs(doc, def.properties[property].items['$ref']));
+                        } else {
+                            arr.push(def.properties[property].items.type);
+                        }
+                        refdef[property] = arr;
+                    } else {
+                        refdef[property] = def.properties[property].type;
+                    }
+                }
+            }
+        }
+        return refdef;
+    };
+
     return {
         /**
          * checks the rules then build the tasks and start to work
@@ -175,31 +211,118 @@ module.exports = (opts = {}) => {
                 let filename = rules;
                 fs.stat(filename, (err) => {
                     if (err === null) {
-                        fs.readFile(filename, (err, data) => {
-                            if (err) { throw err; }
-                            try {
-                                rules = JSON.parse(data.toString());
-                                let tasks = helper.buildTasks(opts, rules);
-                                if (opts.output === 'print') {
-                                    console.log('Find',
-                                        rules.length,
-                                        'in',
-                                        filename,
-                                        'start with',
-                                        tasks.singles.length,
-                                        'Tasks and',
-                                        tasks.groups.length,
-                                        'Groups');
-                                    _spinner.setSpinnerString('|/-\\');
-                                    _spinner.start();
+                        const fileext = path.extname(filename);
+                        if (fileext === '.json') {
+                            fs.readFile(filename, (err, data) => {
+                                if (err) { throw err; }
+                                try {
+                                    rules = JSON.parse(data.toString());
+                                    let tasks = helper.buildTasks(opts, rules);
+                                    if (opts.output === 'print') {
+                                        console.log('Find',
+                                            rules.length,
+                                            'in',
+                                            filename,
+                                            'start with',
+                                            tasks.singles.length,
+                                            'Tasks and',
+                                            tasks.groups.length,
+                                            'Groups');
+                                        _spinner.setSpinnerString('|/-\\');
+                                        _spinner.start();
+                                    }
+                                    start(tasks);
+                                } catch (e) {
+                                    console.log(logSymbols.error,
+                                        colors.red('JSON parse error!'),
+                                        `${filename} is not parsable`);
                                 }
-                                start(tasks);
+                            });
+                        } else if (fileext === '.yaml') {
+                            try {
+                                const doc = yaml.safeLoad(fs.readFileSync(filename, 'utf8'));
+                                if (doc.paths) {
+                                    let host = 'http://localhost:4000';
+                                    if (doc.basePath) {
+                                        host += doc.basePath;
+                                    }
+                                    let task;
+                                    let tasks = {
+                                        groups: [],
+                                        singles: []
+                                    };
+                                    let num = 1;
+                                    for (let i in doc.paths) {
+                                        let uriPath = i;
+                                        for (let j in doc.paths[i]) {
+                                            // iterate over responses
+                                            for (let k in doc.paths[i][j].responses) {
+                                                task = {
+                                                    num,
+                                                    method: j.toUpperCase(),
+                                                    headers: {
+                                                        'Content-Type': 'application/json',
+                                                        'Accept': 'application/json'
+                                                    }
+                                                };
+
+                                                if (doc.paths[i][j].parameters) {
+                                                    if (doc.paths[i][j].parameters[0] && doc.paths[i][j].parameters[0].in === 'path') {
+                                                        if (doc.paths[i][j].parameters[0].example) {
+                                                            // cut off needs to replaced! to keep rest which is lost currently
+                                                            uriPath = i.slice(0, i.indexOf('{')) + doc.paths[i][j].parameters[0].example;
+                                                        }
+                                                    } else if (doc.paths[i][j].parameters[0] && doc.paths[i][j].parameters[0].in === 'query') {
+                                                        uriPath = i + '?' + doc.paths[i][j].parameters[0].name;
+                                                    } else if (doc.paths[i][j].parameters[0] && doc.paths[i][j].parameters[0].in === 'body') {
+                                                        if (doc.paths[i][j].parameters[0] && doc.paths[i][j].parameters[0].schema && doc.paths[i][j].parameters[0].schema['$ref']) {
+                                                            task.body = JSON.stringify(doc.paths[i][j].parameters[0].example);
+                                                        }
+                                                    }
+                                                }
+
+                                                let data = doc.paths[i][j].responses[k].example;
+
+                                                if (doc.paths[i][j].responses[k].examples) {
+                                                    try {
+                                                        data = doc.paths[i][j].responses[k].examples['application/json'];
+                                                    } catch (e) {
+                                                        console.log('examples parse error');
+                                                    }
+                                                }
+
+                                                let uri = host + uriPath;
+                                                task.uri = uri;
+                                                task.response = {
+                                                    statuscode: Number(k),
+                                                    headers: { contenttype: doc.paths[i][j].produces[0] },
+                                                    data
+                                                };
+                                                console.log(task);
+                                                tasks.singles.push(task);
+                                                num += 1;
+                                            }
+                                        }
+                                    }
+                                    if (opts.output === 'print') {
+                                        console.log('Find',
+                                            Object.keys(doc.paths).length,
+                                            'in',
+                                            filename,
+                                            'start with',
+                                            tasks.singles.length,
+                                            'Tasks and',
+                                            tasks.groups.length,
+                                            'Groups');
+                                        _spinner.setSpinnerString('|/-\\');
+                                        _spinner.start();
+                                    }
+                                    start(tasks);
+                                }
                             } catch (e) {
-                                console.log(logSymbols.error,
-                                    colors.red('JSON parse error!'),
-                                    `${filename} is not parsable`);
+                                console.log(e);
                             }
-                        });
+                        }
                     } else if (err.code === 'ENOENT') {
                         console.log(logSymbols.error,
                             colors.red(filename + " doesn't exists!"));

@@ -165,7 +165,7 @@ test('setCommonOutput', t => {
         },
         {
             input: {task: {response: {data: {}}}, result: {body: {}}, output: {msg: []}},
-            expected: {task: {response: {data: {}}}, result: {body: {}}, output: {msg: ['{} is not equal [object Object]']}}
+            expected: {task: {response: {data: {}}}, result: {body: {}}, output: {msg: []}}
         },
         {
             input: {task: {response: {data: 1}}, result: {body: {}}, output: {msg: []}},
@@ -173,11 +173,7 @@ test('setCommonOutput', t => {
         },
         {
             input: {task: {response: {data: 'xa', schema: true}}, result: {body: 'xyz'}, output: {msg: []}},
-            expected: {task: {response: {data: 'xa', schema: true}}, result: {body: 'xyz'}, output: {msg: ['parse error']}}
-        },
-        {
-            input: {task: {response: {data: 'xa', schema: true}}, result: {body: '{}'}, output: {msg: []}},
-            expected: {task: {response: {data: 'xa', schema: true}}, result: {body: '{}'}, output: {msg: ['"value" must be a string']}}
+            expected: {task: {response: {data: 'xa', schema: true}}, result: {body: 'xyz'}, output: {msg: ['"value" must be one of [xa]']}}
         },
         {
             input: {task: {response: {data: Joi.object().keys({test: Joi.string().required()}), schema: true}}, result: {body: '{}'}, output: {msg: []}},
