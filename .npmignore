@@ -1,9 +1,0 @@
-.nyc_output/
-node_modules/
-coverage/
-reports/
-reports.html
-reports.xml
-responser.js
-main.js
-*.json

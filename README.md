@@ -5,10 +5,16 @@ Can test several backends if the resources are response like expected.
 
 [![NPM](https://nodei.co/npm/apirequests.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/apirequests/)
 
+## Requirements
+
+Node.js >= 18 (uses the global `fetch` and `AbortSignal.timeout`).
+
+This package is ESM-only, so it must be loaded with `import`.
+
 ## How to use
 
 ```javascript
-const apirequests = require('apirequests');
+import apirequests from 'apirequests';
 
 const rules = [...];
 
@@ -19,16 +25,16 @@ apitest.run(rules);
 Use rules from a JSON file.
 
 ```javascript
-const apirequests = require('apirequests');
+import apirequests from 'apirequests';
 
 const apitest = apirequests();
 apitest.run('rules.json');
 ```
 
-Use YAML file with OpenAPI-Specification, needs examples to work!
+Use a YAML file with a Swagger 2.0 or OpenAPI 3 specification, needs examples to work!
 
 ```javascript
-const apirequests = require('apirequests');
+import apirequests from 'apirequests';
 
 const apitest = apirequests();
 apitest.run('api.yaml');
@@ -37,17 +43,17 @@ apitest.run('api.yaml');
 Use a store engine, like MongoDB, for storing the rules.
 
 ```javascript
-const apirequests = require('apirequests');
-const MongoClient = require('mongodb').MongoClient;
+import apirequests from 'apirequests';
+import { MongoClient } from 'mongodb';
 
-MongoClient.connect('mongodb://127.0.0.1:27017/apirequests', (err, db) => {
-    if(err) throw err;
-    let apitest = apirequests();
-    db.collection('urls').find().toArray((err, results) => {
-        apitest.run(results);
-        db.close();
-    });
-});
+const connectionUrl = 'mongodb://127.0.0.1:27017/apirequests';
+const client = new MongoClient(connectionUrl);
+await client.connect();
+
+const apitest = apirequests();
+const results = await client.db().collection('urls').find().toArray();
+await apitest.run(results);
+await client.close();
 ```
 
 #### Options
@@ -69,9 +75,9 @@ The default values are `reports.html` and `./`, will be used when output is set 
 When `output` is set to `xml` or to `ci` then the outputFile will be named `reports.xml`.  
 
 ```javascript
-const apirequests = require('apirequests');
+import apirequests from 'apirequests';
 
-let apitest = apirequests({output: 'html', outputFile: 'report.html'});
+const apitest = apirequests({ output: 'html', outputFile: 'report.html' });
 apitest.run('rules.json');
 ```
 
@@ -79,31 +85,31 @@ apitest.run('rules.json');
 When the requests should run in a `loop` with a timeout value.
 
 ```javascript
-require('apirequests')({loop: 2000}).run('rules.json');
+import apirequests from 'apirequests';
+
+apirequests({ loop: 2000 }).run('rules.json');
 ```
 
-##### connectionurl and collection  
-The default values are `mongodb://127.0.0.1:27017/apirequests` and `results`, will be used when output is set to db.  
+##### connectionurl, database and collection  
+The default values are `mongodb://127.0.0.1:27017`, `apirequests` and `results`, will be used when output is set to db.  
 
 ```javascript
-const apirequests = require('apirequests');
-const MongoClient = require('mongodb').MongoClient;
+import apirequests from 'apirequests';
+import { MongoClient } from 'mongodb';
 
-const connectionUrl = 'mongodb://127.0.0.1:27017/requests';
-const opts = {output: 'db', connectionurl: connectionUrl};
+const connectionUrl = 'mongodb://127.0.0.1:27017';
+const opts = { output: 'db', connectionurl: connectionUrl };
+const client = new MongoClient(connectionUrl);
+await client.connect();
 
-MongoClient.connect(connectionUrl, function(err, db) {
-    if(err) throw err;
-
-    let apitest = apirequests(opts);
-
-    db.collection('urls').find().toArray((err, results) => {
-        if(err) throw err;
-        apitest.run(results);
-        db.close();
-    });
-});
+const apitest = apirequests(opts);
+const results = await client.db().collection('urls').find().toArray();
+await apitest.run(results);
+await client.close();
 ```
+
+##### timeout
+Per request timeout in milliseconds, defaults to `30000`. Can also be set per rule.
 
 ## How to define rules
 
@@ -116,14 +122,14 @@ Some examples how to define rules.
 ```javascript
 [{
     method: 'get',
-    uri: 'http://webservice-point.appspot.com/test'
+    uri: 'http://example.com/test'
 },
 {
     method: 'post',
-    uri: 'http://webservice-point.appspot.com/test',
+    uri: 'http://example.com/test',
     form: {
-        name: "apirequests",
-        test: "post"
+        name: 'apirequests',
+        test: 'post'
     },
     headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
@@ -135,18 +141,18 @@ Some examples how to define rules.
 },
 {
     method: 'put',
-    uri: 'http://webservice-point.appspot.com/test/123',
+    uri: 'http://example.com/test/123',
     response: {
         statuscode: 404,
         headers: {
             contenttype: 'text/html; charset=UTF-8',
-            contentlength: '285'           
+            contentlength: '285'
         }
     }
 },
 {
     method: 'patch',
-    uri: 'http://webservice-point.appspot.com/test/123',
+    uri: 'http://example.com/test/123',
     response: {
         statuscode: 404,
         headers: {
@@ -157,7 +163,7 @@ Some examples how to define rules.
 },
 {
     method: 'delete',
-    uri: 'http://webservice-point.appspot.com/test',
+    uri: 'http://example.com/test',
     response: {
         statuscode: 404,
         headers: {
@@ -172,7 +178,7 @@ Some examples how to define rules.
 Response validation supports `joi` when `schema` flag is set.
 ```javascript
 {
-    ...
+    // ...
     response: {
         statuscode: 200,
         data: Joi.object()
@@ -187,14 +193,14 @@ Response validation supports `joi` when `schema` flag is set.
 To send JSON data it's needed to define a `body` and send the specific header.
 ```javascript
 {
-    ...
-    body: JSON.stringify({apirequest: 'post'}),
+    // ...
+    body: JSON.stringify({ apirequest: 'post' }),
     headers: {
         'Content-Type': 'application/json'
     },
     response: {
         statuscode: 200,
-        data: {apirequest: 'post'}
+        data: { apirequest: 'post' }
     }
 }
 ```
@@ -205,10 +211,10 @@ It's possible to define groups to have depending requests or test CRUD functiona
     name: 'Group Test',
     key: '_id',
     group: [
-        {            
+        {
             method: 'post',
-            uri: 'http://localhost:3000/users',            
-            body: JSON.stringify({email: 'created@apirequests.com'}),
+            uri: 'http://localhost:3000/users',
+            body: JSON.stringify({ email: 'created@apirequests.com' }),
             headers: {
                 'Content-Type': 'application/json'
             },
@@ -228,7 +234,7 @@ It's possible to define groups to have depending requests or test CRUD functiona
         {
             method: 'put',
             uri: 'http://localhost:3000/users',
-            body: JSON.stringify({email: 'upgrated@apirequests.com'}),
+            body: JSON.stringify({ email: 'upgrated@apirequests.com' }),
             headers: {
                 'Content-Type': 'application/json'
             },
@@ -256,15 +262,28 @@ It's possible to define groups to have depending requests or test CRUD functiona
 }
 ```
 
+## OpenAPI / Swagger files
+
+When the rules file is a YAML document with a `paths` object, it is treated as an API
+specification instead of an array of rules. Both Swagger 2.0 and OpenAPI 3 documents are
+supported and need `example` (or `examples`) fields to build the requests:
+
+* Swagger 2.0 uses `schemes`/`host`/`basePath`, per-operation `produces` and response
+  `example` / `examples['application/json']`.
+* OpenAPI 3 uses the first `servers[].url`, `content` media types and `example` /
+  `examples[].value` on request bodies and responses.
+
+Without a host (or servers) the base URL defaults to `http://localhost:4000`.
+
 ## Results
 
-Per default the result be print out and looks like the picture below.
+Per default the result is printed to the console, one line per task with a `PASS`, `FAIL` or
+`RUN` marker (only `FAIL` lines when `printOnlyFailure` is set). A summary reports how many
+tasks and groups finished, in how many milliseconds, and how many tests passed/failed.
 
-![Console](https://dbgaecdn.appspot.com/images/apirequests_console.png)
-
-The HTML file which gets created. `{output: 'html'}`
-
-![HTML](https://dbgaecdn.appspot.com/images/apirequests_html.png)
+The HTML file (`{output: 'html'}`) and the JUnit-style XML file (`{output: 'xml'}` or
+`{output: 'ci'}`) contain the same information.
 
 ## Feedback
+
 Star this repo if you found it useful. Use the github issue tracker to give feedback on this repo.
