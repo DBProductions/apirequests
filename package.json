@@ -27,7 +27,7 @@
   "homepage": "https://github.com/DBProductions/apirequests",
   "repository": {
     "type": "git",
-    "url": "https://github.com/DBProductions/apirequests.git"
+    "url": "git+https://github.com/DBProductions/apirequests.git"
   },
   "bugs": {
     "url": "https://github.com/DBProductions/apirequests/issues"
