@@ -7,7 +7,7 @@ Can test several backends if the resources are response like expected.
 
 ## Requirements
 
-Node.js >= 18 (uses the global `fetch` and `AbortSignal.timeout`).
+Node.js >= 20.19 (uses the global `fetch` and `AbortSignal.timeout`).
 
 This package is ESM-only, so it must be loaded with `import`.
 
