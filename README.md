@@ -90,6 +90,36 @@ import apirequests from 'apirequests';
 apirequests({ loop: 2000 }).run('rules.json');
 ```
 
+##### retries and retryDelay
+Transient fetch failures (network errors, 5xx) are retried up to `retries` times with
+`retryDelay` milliseconds between attempts. Defaults are `0` and `250`.
+
+```javascript
+import apirequests from 'apirequests';
+
+apirequests({ retries: 3, retryDelay: 500 }).run('rules.json');
+```
+
+#### CLI
+The package ships a `bin/apirequests.js` CLI (`npx apirequests rules.json`, or globally via
+`npm i -g`). Flags:
+
+* `--output <print|html|xml|db|ci>` output format (default `print`)
+* `--output-path <dir>` directory for report files
+* `--output-file <name>` report file name
+* `--loop <ms>` repeat after a delay
+* `--print-only-failure` only print failing tasks
+* `-h`, `--help` show help
+
+```sh
+npx apirequests rules.json --output html --output-path ./reports
+```
+
+#### Fault tolerance
+A failing request no longer aborts the whole run. The task is recorded as a failed result
+(error message included) in the summary, the printed output, and the HTML/XML reports, and the
+remaining tasks still execute. The process exit code reflects any failures.
+
 ##### connectionurl, database and collection  
 The default values are `mongodb://127.0.0.1:27017`, `apirequests` and `results`, will be used when output is set to db.  
 

@@ -1,15 +1,19 @@
 {
   "name": "apirequests",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Simple multiple configurable API requests.",
   "main": "index.js",
   "type": "module",
+  "bin": {
+    "apirequests": "bin/apirequests.js"
+  },
   "exports": {
     ".": "./index.js"
   },
   "files": [
     "index.js",
     "lib/",
+    "bin/",
     "CHANGELOG.md"
   ],
   "engines": {
@@ -18,7 +22,7 @@
   "scripts": {
     "test": "ava",
     "coverage": "c8 ava",
-    "lint": "eslint lib/ index.js test/",
+    "lint": "eslint lib/ index.js test/ bin/",
     "audit:prod": "npm audit --omit=dev",
     "prepack": "npm run lint && npm test",
     "prepublishOnly": "npm run lint && npm test"

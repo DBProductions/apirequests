@@ -58,6 +58,20 @@ const printSummary = (tasks, opts, filename) => {
 };
 
 /**
+ * Build a normalized failed result for a request that threw.
+ */
+const errorResult = (task, err) => ({
+    statusCode: 0,
+    headers: {},
+    body: '',
+    num: task.num,
+    reqend: Date.now(),
+    request: { host: '' },
+    requestTime: Math.round(Date.now() - task.reqstart),
+    error: err.message
+});
+
+/**
  * get results for a group
  */
 const getGroupResults = async (tasks) => {
@@ -67,7 +81,7 @@ const getGroupResults = async (tasks) => {
         for (let i = 0; i < group.tasks.length; i++) {
             const task = group.tasks[i];
             task.reqstart = Date.now();
-            const response = await helper.caller(task);
+            const response = await helper.caller(task).catch((err) => errorResult(task, err));
             const next = group.tasks[i + 1];
             if (next) {
                 let data;
@@ -133,7 +147,7 @@ const start = async (tasks, opts, again = false) => {
     process.exitCode = 0;
     const promRequests = tasks.singles.map((task) => {
         task.reqstart = Date.now();
-        return helper.caller(task);
+        return helper.caller(task).catch((err) => errorResult(task, err));
     });
     try {
         const values = await Promise.all(promRequests);

@@ -243,6 +243,75 @@ test('buildOpenApiTasks empty document', t => {
 });
 
 /**
+ * build tasks resolving $ref components
+ */
+test('buildOpenApiTasks resolves $ref components', t => {
+    const doc = {
+        openapi: '3.0.0',
+        servers: [{ url: 'https://api.example.com/v1/' }],
+        paths: {
+            '/pets/{petId}': {
+                parameters: [
+                    { $ref: '#/components/parameters/PetId' }
+                ],
+                get: {
+                    responses: {
+                        200: {
+                            description: 'ok',
+                            content: {
+                                'application/json': {
+                                    schema: { $ref: '#/components/schemas/Pet' }
+                                }
+                            }
+                        },
+                        404: {
+                            $ref: '#/components/responses/NotFound'
+                        }
+                    }
+                }
+            }
+        },
+        components: {
+            parameters: {
+                PetId: {
+                    name: 'petId',
+                    in: 'path',
+                    required: true,
+                    schema: { type: 'string' },
+                    example: '7'
+                }
+            },
+            schemas: {
+                Pet: { type: 'object', example: { id: 42, name: 'rex' } }
+            },
+            responses: {
+                NotFound: { description: 'not found' }
+            }
+        }
+    };
+    const expected = {
+        groups: [],
+        singles: [
+            {
+                num: 1,
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                uri: 'https://api.example.com/v1/pets/7',
+                response: { statuscode: 200, headers: { contenttype: 'application/json' }, data: { id: 42, name: 'rex' } }
+            },
+            {
+                num: 2,
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                uri: 'https://api.example.com/v1/pets/7',
+                response: { statuscode: 404 }
+            }
+        ]
+    };
+    t.deepEqual(helper.buildOpenApiTasks(doc), expected);
+});
+
+/**
  * fill results with matching tasks and responses
  */
 test('fillResults', t => {
