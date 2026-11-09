@@ -13,7 +13,7 @@ contract checks. It is not a load generator or a full API testing platform.
 **Use it when**
 
 - You want HTTP checks defined as JSON or YAML and run from Node or CI.
-- You already use Node >= 20.19 and prefer one runtime instead of installing another binary.
+- You already use a Node version supported by AVA 8: `22.20+`, `24.12+`, or `26+`.
 - You need a mix of a JavaScript API (`await apitest.run(rules)`) and a CLI.
 - You want simple response assertions (status, headers, body, regex, Joi), sequential CRUD
   groups, and console / HTML / JUnit XML / MongoDB reports.
@@ -35,9 +35,11 @@ These tools are often complementary: use Hurl/Newman for API workflows, k6 for p
 
 ## Requirements
 
-Node.js >= 20.19 (uses the global `fetch` and `AbortSignal.timeout`).
+Node.js `^22.20.0 || ^24.12.0 || >=26.0.0` — the same range AVA 8 supports. Node 20, 23 and 25
+are not supported because the test runner cannot run there.
 
-This package is ESM-only, so it must be loaded with `import`.
+It uses the global `fetch` and `AbortSignal.timeout`. This package is ESM-only, so it must be
+loaded with `import`.
 
 ## How to use
 

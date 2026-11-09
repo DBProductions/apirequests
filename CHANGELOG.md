@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.1] - 2026-11-09
+
+### Changed (breaking for unsupported Node versions)
+
+- The Node engine range now matches AVA 8: `^22.20.0 || ^24.12.0 || >=26.0.0`. Node 20, 23 and
+  25 are no longer supported because AVA 8 cannot run there.
+- CI matrix is Node 22 / 24 / 26 and includes the production dependency audit.
+
+### Fixed
+
+- Synced `package-lock.json` with the `2.0.1` package version.
+
 ## [2.0.0] - 2026-11-09
 
 ### Added
@@ -101,5 +113,6 @@ All notable changes to this project will be documented in this file.
 - README rewritten for ESM usage and modern options; removed dead demo endpoints and
   broken screenshot links.
 
+[2.0.1]: https://github.com/DBProductions/apirequests/releases/tag/2.0.1
 [2.0.0]: https://github.com/DBProductions/apirequests/releases/tag/2.0.0
 [1.0.0]: https://github.com/DBProductions/apirequests/releases/tag/1.0.0

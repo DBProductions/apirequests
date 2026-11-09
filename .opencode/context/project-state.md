@@ -37,8 +37,8 @@ Data flow: `run(rules)` → `helper.buildTasks` → `helper.caller` (fetch, para
 
 ## Current state (all green)
 
-- **Node engine**: `>=20.19` (uses global `fetch`, `AbortSignal.timeout`; runtime deps joi/mongodb
-  already require Node >=20.19)
+- **Node engine**: `^22.20.0 || ^24.12.0 || >=26.0.0`, matched to AVA 8's supported runtimes
+  (Node 20/23/25 intentionally unsupported). Uses global `fetch` and `AbortSignal.timeout`.
 - **Module system**: ESM (`"type": "module"`) — **breaking for CJS consumers**: `require('apirequests')`
   returns `{ default }`; use `import` or `.default`.
 - **Tests**: `npm test` → 57 pass, 1 skipped (live E2E) with ava 8
@@ -150,8 +150,11 @@ This session completed it:
 - **Deps/audit**: bumps (joi 18.3.2, js-yaml 5.5.0, mongodb 7.8.0, ava 8.4.0, eslint 10.14.0,
   globals 17.14.0) and overrides (lodash 4.18.1, minimatch 11.0.5, glob 14.0.4,
   supertap→js-yaml 3.15.2) keep `npm audit` clean.
+- **Node/CI alignment**: engine range changed from `>=20.19` to
+  `^22.20.0 || ^24.12.0 || >=26.0.0` to match AVA 8 (Node 20/23/25 unsupported); CI matrix is
+  Node 22/24/26 and runs `audit:prod`.
 - **Docs**: README positioning/retry/redaction/Mongo/CLI/E2E sections; CHANGELOG 2.0.0 with explicit
-  breaking retry notes.
+  breaking retry notes and 2.0.1 Node engine note.
 
 ## Conventions to follow
 
