@@ -194,6 +194,146 @@ test('retries a failing request until it succeeds', async t => {
     t.deepEqual(retrySummary, { passed: 1, failed: 0 });
 });
 
+test('retries retryable status codes', async t => {
+    const http = await import('node:http');
+    let count = 0;
+    const srv = http.createServer((req, res) => {
+        count += 1;
+        if (count < 3) {
+            res.writeHead(503, { 'Content-Type': 'application/json', 'Retry-After': '0' });
+            res.end(JSON.stringify({ error: 'busy' }));
+            return;
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+    });
+    await new Promise((resolve) => srv.listen(0, '127.0.0.1', resolve));
+    const { port } = srv.address();
+    const apitest = apirequests();
+    try {
+        const summary = await apitest.run([
+            { method: 'get', uri: `http://127.0.0.1:${port}/x`, retries: 3, retryDelay: 5, response: { statuscode: 200 } }
+        ]);
+        t.deepEqual(summary, { passed: 1, failed: 0 });
+        t.is(count, 3);
+    } finally {
+        srv.close();
+    }
+});
+
+test('factory-level retries apply to rules without their own settings', async t => {
+    const http = await import('node:http');
+    let count = 0;
+    const srv = http.createServer((req, res) => {
+        count += 1;
+        if (count < 3) {
+            res.writeHead(503);
+            res.end('no');
+            return;
+        }
+        res.writeHead(200);
+        res.end('ok');
+    });
+    await new Promise((resolve) => srv.listen(0, '127.0.0.1', resolve));
+    const { port } = srv.address();
+    try {
+        const summary = await apirequests({ retries: 2, retryDelay: 5 }).run([
+            { method: 'get', uri: `http://127.0.0.1:${port}/x`, response: { statuscode: 200 } }
+        ]);
+        t.deepEqual(summary, { passed: 1, failed: 0 });
+        t.is(count, 3);
+    } finally {
+        srv.close();
+    }
+});
+
+test('per-rule retry settings override factory defaults', async t => {
+    const http = await import('node:http');
+    let count = 0;
+    const srv = http.createServer((req, res) => {
+        count += 1;
+        res.writeHead(503);
+        res.end('no');
+    });
+    await new Promise((resolve) => srv.listen(0, '127.0.0.1', resolve));
+    const { port } = srv.address();
+    try {
+        const summary = await apirequests({ retries: 5, retryDelay: 5 }).run([
+            { method: 'get', uri: `http://127.0.0.1:${port}/x`, retries: 1, retryDelay: 5, response: { statuscode: 200 } }
+        ]);
+        t.deepEqual(summary, { passed: 0, failed: 1 });
+        t.is(count, 2);
+    } finally {
+        srv.close();
+    }
+});
+
+test('retryOnStatus false disables status-code retries', async t => {
+    const http = await import('node:http');
+    let count = 0;
+    const srv = http.createServer((req, res) => {
+        count += 1;
+        res.writeHead(503);
+        res.end('no');
+    });
+    await new Promise((resolve) => srv.listen(0, '127.0.0.1', resolve));
+    const { port } = srv.address();
+    try {
+        const summary = await apirequests().run([
+            { method: 'get', uri: `http://127.0.0.1:${port}/x`, retries: 3, retryDelay: 5, retryOnStatus: false, response: { statuscode: 200 } }
+        ]);
+        t.deepEqual(summary, { passed: 0, failed: 1 });
+        t.is(count, 1);
+    } finally {
+        srv.close();
+    }
+});
+
+test('does not retry non-idempotent requests by default', async t => {
+    const http = await import('node:http');
+    const srv = http.createServer((req, res) => {
+        res.writeHead(503);
+        res.end('no');
+    });
+    await new Promise((resolve) => srv.listen(0, '127.0.0.1', resolve));
+    const { port } = srv.address();
+    const apitest = apirequests();
+    try {
+        const summary = await apitest.run([
+            { method: 'post', uri: `http://127.0.0.1:${port}/x`, retries: 3, retryDelay: 5, response: { statuscode: 200 } }
+        ]);
+        t.deepEqual(summary, { passed: 0, failed: 1 });
+    } finally {
+        srv.close();
+    }
+});
+
+test('retries non-idempotent requests when retryUnsafe is true', async t => {
+    const http = await import('node:http');
+    let count = 0;
+    const srv = http.createServer((req, res) => {
+        count += 1;
+        if (count === 1) {
+            res.writeHead(503);
+            res.end('no');
+            return;
+        }
+        res.writeHead(200);
+        res.end('ok');
+    });
+    await new Promise((resolve) => srv.listen(0, '127.0.0.1', resolve));
+    const { port } = srv.address();
+    const apitest = apirequests();
+    try {
+        const summary = await apitest.run([
+            { method: 'post', uri: `http://127.0.0.1:${port}/x`, retries: 2, retryDelay: 5, retryUnsafe: true, response: { statuscode: 200 } }
+        ]);
+        t.deepEqual(summary, { passed: 1, failed: 0 });
+    } finally {
+        srv.close();
+    }
+});
+
 test('group tasks append the key from the previous response', async t => {
     const apitest = apirequests();
     const summary = await apitest.run([{
@@ -249,7 +389,7 @@ test.serial('loop schedules another run', async t => {
         return { unref: () => {}, ref: () => {}, hasRef: () => false };
     };
     try {
-        await apirequests({ loop: 50 }).run([
+        await apirequests({ loop: 50, output: 'html', outputPath: os.tmpdir(), outputFile: `loop-${Date.now()}.html` }).run([
             { method: 'get', uri: `${baseUrl}/ok`, response: { statuscode: 200 } }
         ]);
     } finally {
@@ -271,6 +411,49 @@ test('run with ci output prints and writes xml', async t => {
     } finally {
         await fs.rm(dir, { recursive: true, force: true });
     }
+});
+
+test('storeResults uses an injected mongo client without closing it', async t => {
+    const inserted = [];
+    let closed = false;
+    const task = { num: 1, method: 'get', uri: 'http://x', headers: { Authorization: 'Bearer secret' } };
+    const client = {
+        db: () => ({
+            collection: () => ({
+                insertMany: async (docs) => {
+                    inserted.push(docs);
+                    return { insertedCount: docs.length };
+                }
+            })
+        }),
+        close: async () => { closed = true; }
+    };
+    const { storeResults } = await import('../lib/output.js');
+    await storeResults({
+        single: [{ task, result: { reqend: 1, headers: {} }, output: { pass: true } }],
+        group: []
+    }, { mongoClient: client, database: 'test', collection: 'test', redact: true });
+    t.is(inserted.length, 1);
+    t.is(inserted[0][0].task.headers.Authorization, '[REDACTED]');
+    t.is(task.headers.Authorization, 'Bearer secret');
+    t.false(closed);
+});
+
+test('storeResults lets closeClient control cleanup of an injected client', async t => {
+    let closed = false;
+    const client = {
+        db: () => ({
+            collection: () => ({
+                insertMany: async (docs) => ({ insertedCount: docs.length })
+            })
+        })
+    };
+    const { storeResults } = await import('../lib/output.js');
+    await storeResults({
+        single: [],
+        group: []
+    }, { client, closeClient: async () => { closed = true; } });
+    t.true(closed);
 });
 
 test.serial('yaml file that is not rules or an OpenAPI spec resolves a zero summary', async t => {
@@ -312,6 +495,22 @@ test('cli runs a rules file', async t => {
     const cli = path.join(process.cwd(), 'bin', 'apirequests.js');
     try {
         await promisify(execFile)(process.execPath, [cli, rulesFile, '--output', 'xml'], { cwd: dir });
+        const report = await fs.readFile(path.join(dir, 'reports.xml'), 'utf8');
+        t.regex(report, /tests="1" failures="0"/);
+    } finally {
+        await fs.rm(dir, { recursive: true, force: true });
+    }
+});
+
+test('cli accepts options before the rules file', async t => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'apirequests-'));
+    const rulesFile = path.join(dir, 'rules.json');
+    await fs.writeFile(rulesFile, JSON.stringify([
+        { method: 'get', uri: `${baseUrl}/ok`, response: { statuscode: 200 } }
+    ]));
+    const cli = path.join(process.cwd(), 'bin', 'apirequests.js');
+    try {
+        await promisify(execFile)(process.execPath, [cli, '--output', 'xml', rulesFile], { cwd: dir });
         const report = await fs.readFile(path.join(dir, 'reports.xml'), 'utf8');
         t.regex(report, /tests="1" failures="0"/);
     } finally {
@@ -368,6 +567,20 @@ test('cli shows help', async t => {
     const cli = path.join(process.cwd(), 'bin', 'apirequests.js');
     const { stdout } = await promisify(execFile)(process.execPath, [cli, '--help']);
     t.regex(stdout, /Usage: apirequests <rules/);
+});
+
+test('cli shows version', async t => {
+    const cli = path.join(process.cwd(), 'bin', 'apirequests.js');
+    const { stdout } = await promisify(execFile)(process.execPath, [cli, '--version']);
+    t.regex(stdout.trim(), /^\d+\.\d+\.\d+/);
+});
+
+test('cli warns on unknown option', async t => {
+    const cli = path.join(process.cwd(), 'bin', 'apirequests.js');
+    const result = await promisify(execFile)(process.execPath, [cli, '--nope', path.join(process.cwd(), 'package.json')], { cwd: process.cwd() })
+        .catch((err) => err);
+    t.is(result.code, 1);
+    t.regex(result.stderr, /Unknown option/);
 });
 
 test('unsupported file extension resolves a zero summary', async t => {

@@ -212,7 +212,7 @@ export default (opts = {}) => {
                         return Promise.resolve({ passed: 0, failed: 0 });
                     }
                     const tasks = (isYaml(filename) && isOpenApiDoc(source))
-                        ? helper.buildOpenApiTasks(source)
+                        ? helper.buildOpenApiTasks(source, opts)
                         : helper.buildTasks(opts, source);
                     printSummary(tasks, opts, filename);
                     return start(tasks, opts);

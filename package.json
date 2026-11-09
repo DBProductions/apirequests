@@ -21,6 +21,7 @@
   },
   "scripts": {
     "test": "ava",
+    "test:e2e": "E2E_LIVE=1 ava test/test.e2e.js",
     "coverage": "c8 ava",
     "lint": "eslint lib/ index.js test/ bin/",
     "audit:prod": "npm audit --omit=dev",
@@ -44,22 +45,27 @@
   "license": "MIT",
   "dependencies": {
     "cli-spinner": "^0.2.10",
-    "joi": "^18.2.3",
-    "js-yaml": "^5.2.3",
+    "joi": "^18.3.2",
+    "js-yaml": "^5.5.0",
     "log-symbols": "^7.0.1",
-    "mongodb": "^7.5.0",
+    "mongodb": "^7.8.0",
     "picocolors": "^1.1.1"
   },
   "devDependencies": {
-    "ava": "^7.0.0",
+    "ava": "^8.4.0",
     "c8": "^12.0.0",
-    "eslint": "^10.8.1",
-    "eslint-plugin-import-x": "^4.17.1",
-    "eslint-plugin-n": "^18.3.0",
+    "eslint": "^10.14.0",
+    "eslint-plugin-import-x": "^4.18.1",
+    "eslint-plugin-n": "^18.5.0",
     "eslint-plugin-promise": "^7.3.0",
-    "globals": "^15.15.0"
+    "globals": "^17.14.0"
   },
   "overrides": {
-    "lodash": "4.17.21"
+    "lodash": "4.18.1",
+    "minimatch": "11.0.5",
+    "glob": "14.0.4",
+    "supertap": {
+      "js-yaml": "3.15.2"
+    }
   }
 }
