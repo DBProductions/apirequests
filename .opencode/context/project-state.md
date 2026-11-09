@@ -47,7 +47,7 @@ Data flow: `run(rules)` → `helper.buildTasks` → `helper.caller` (fetch, para
   output.js 93%, xml.js 100%; Mongo connection paths and the loop "again" print remain untested)
 - **Audit**: `npm audit` and `npm run audit:prod` → clean (overrides for lodash, minimatch, glob,
   supertap→js-yaml)
-- **CI**: GitHub Actions `.github/workflows/ci.yml` (test/lint/coverage/audit:prod on Node 20/22/24)
+- **CI**: GitHub Actions `.github/workflows/ci.yml` (test/lint/coverage/audit:prod on Node 22/24/26)
 - **Docs**: README has positioning (Hurl/Newman/k6), smart-retry rules, redaction, Mongo injection,
   CLI flags and live E2E instructions; CHANGELOG has 2.0.0 breaking notes; LICENSE (MIT).
 - **Packaging**: `files` whitelist + `exports` map; tarball ships only `index.js`, `lib/`,
